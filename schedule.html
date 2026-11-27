@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thời khóa biểu &amp; Điểm danh — LHU Attendance Tracker</title>
+  <link rel="icon" type="image/png" href="assets/logo-chimlac-nobg.png">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/schedule.css">
+</head>
+<body class="ui-page">
+  <!-- Link ẩn, hiện khi bấm Tab: nhảy thẳng vào nội dung, bỏ qua header + menu -->
+  <a class="ui-skip" href="#main">Bỏ qua, tới nội dung chính</a>
+  <header class="ui-header">
+    <img class="ui-header__logo" src="assets/logo-chimlac-nobg.png" alt="Logo Chim Lạc – Đại học Lạc Hồng" width="64" height="36">
+    <div class="ui-header__text">
+      <h1 class="ui-header__title">LHU Attendance Tracker</h1>
+      <p class="ui-header__sub">Thời khóa biểu &amp; Chuyên cần</p>
+    </div>
+  </header>
+
+  <div class="ui-layout">
+    <nav class="ui-sidebar" aria-label="Điều hướng chính">
+      <ul class="ui-nav">
+        <li><a class="ui-nav__link" href="index.html">Tổng quan</a></li>
+        <li><a class="ui-nav__link" href="schedule.html" aria-current="page">Thời khóa biểu</a></li>
+        <li><a class="ui-nav__link" href="profile.html">Hồ sơ &amp; Cài đặt</a></li>
+      </ul>
+    </nav>
+
+    <main class="ui-main" id="main" tabindex="-1">
+      <h2>Thời khóa biểu &amp; Điểm danh</h2>
+      <!-- Điều khiển tuần: schedule.js gắn sự kiện cho 3 nút -->
+      <div class="ui-week-controls" id="week-controls">
+        <button type="button" class="ui-btn" id="btn-prev-week">&larr; Tuần trước</button>
+        <p class="ui-week-controls__title" id="week-title">Tuần ...</p>
+        <button type="button" class="ui-btn" id="btn-today">Hôm nay</button>
+        <button type="button" class="ui-btn" id="btn-next-week">Tuần sau &rarr;</button>
+      </div>
+
+      <!-- Chú thích màu trạng thái -->
+      <ul class="ui-legend" aria-label="Chú thích trạng thái">
+        <li class="ui-legend__item ui-legend__item--present">Có mặt</li>
+        <li class="ui-legend__item ui-legend__item--absent">Vắng</li>
+        <li class="ui-legend__item ui-legend__item--excused">Có phép</li>
+        <li class="ui-legend__item ui-legend__item--upcoming">Sắp tới</li>
+      </ul>
+
+      <!-- Lưới lịch tuần: schedule.js đổ vào #schedule-grid (mẫu cấu trúc ở docs/ui-preview.html).
+           Class .ui-slide-left / .ui-slide-right được thêm vào .ui-week-scroll khi chuyển tuần. -->
+      <div class="ui-week-scroll" tabindex="0" role="region" aria-label="Lưới lịch tuần (cuộn ngang nếu màn hình hẹp)">
+        <section class="ui-week" id="schedule-grid" aria-label="Lịch tuần"></section>
+      </div>
+    </main>
+  </div>
+
+  <footer class="ui-footer">
+    <p>Đồ án Thiết kế Web (111101) — Đại học Lạc Hồng</p>
+  </footer>
+
+  <!-- Vùng hiện toast cảnh báo (góc trên phải) -->
+  <div class="ui-toast-stack" id="toast-stack" role="status" aria-live="polite"></div>
+
+  <script type="module" src="js/schedule.js"></script>
+</body>
+</html>

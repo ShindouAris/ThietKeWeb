@@ -1,0 +1,186 @@
+/* ==========================================================
+   profile.css — Style cho Dashboard (index.html) và Hồ sơ (profile.html)
+   Tiền tố class: .pf-   (index.html nạp file này bằng dashboard.js)
+   Dùng biến màu/khoảng cách từ styles.css.
+   ========================================================== */
+
+/* Dashboard dùng toàn bộ bề rộng màn hình; số cột tự tăng theo bề rộng (xem các lưới bên dưới). */
+
+/* ---------- DASHBOARD: lời chào ---------- */
+.pf-greeting { margin: 0 0 var(--ui-space-4); font-size: 1.1rem; }
+.pf-greeting__date { display: block; font-size: 0.9rem; color: var(--ui-text-muted); }
+
+/* ---------- DASHBOARD: lưới widget (CSS Grid) ----------
+   auto-fit + minmax: tự chia số cột theo bề rộng (4 cột desktop -> 2 cột -> 1 cột mobile)
+   mà không cần media query. */
+.pf-widgets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--ui-space-4);
+  margin-bottom: var(--ui-space-5);
+}
+/* Thẻ "sắp tới" luôn chiếm cả hàng.
+   600–899px: 2 cột (tỷ lệ | cảnh báo), thẻ "hôm nay" chiếm cả hàng để không bị kéo cao trống.
+   Từ 900px: 3 thẻ số liệu nằm 1 hàng (cao bằng nhau). */
+.pf-widget--wide { grid-column: 1 / -1; }
+@media (min-width: 600px) and (max-width: 899px) {
+  .pf-widgets { grid-template-columns: repeat(2, 1fr); }
+  .pf-widget--today { grid-column: 1 / -1; }
+}
+@media (min-width: 900px) {
+  .pf-widgets { grid-template-columns: repeat(3, 1fr); }
+}
+.pf-widget {
+  padding: var(--ui-space-4);
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius);
+  box-shadow: var(--ui-shadow);
+}
+.pf-widget__title { margin: 0 0 var(--ui-space-2); font-size: 0.9rem; color: var(--ui-text-muted); }
+.pf-widget__big { margin: 0; font-size: 2.2rem; font-weight: 700; color: var(--ui-primary); }
+.pf-widget__sub { margin: var(--ui-space-1) 0 0; font-size: 0.85rem; color: var(--ui-text-muted); }
+.pf-widget__pair { display: flex; flex-wrap: wrap; gap: var(--ui-space-2); margin: 0; }
+.pf-count { padding: var(--ui-space-1) var(--ui-space-3); border-radius: 999px; }
+.pf-count strong { font-size: 1.5rem; }
+.pf-count--warning { color: var(--ui-warning); background: var(--ui-warning-bg); }
+.pf-count--danger { color: var(--ui-danger); background: var(--ui-danger-bg); }
+.pf-empty { margin: 0; color: var(--ui-text-muted); }
+
+/* Danh sách buổi học trong widget: viền trái màu môn */
+.pf-list { display: flex; flex-direction: column; gap: var(--ui-space-2); margin: 0; padding: 0; list-style: none; }
+/* Trong thẻ rộng, các buổi học xếp ngang thành lưới thay vì xếp dọc */
+/* min(240px, 100%): khung hẹp hơn 240px thì ô co theo khung, không tràn ra ngoài */
+.pf-list--row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); }
+.pf-session {
+  display: flex;
+  flex-direction: column;
+  padding: var(--ui-space-2) var(--ui-space-3);
+  font-size: 0.85rem;
+  background: var(--ui-bg);
+  border-left: 4px solid var(--course-color);
+  border-radius: var(--ui-radius-sm);
+}
+.pf-session__time { color: var(--ui-text-muted); }
+.pf-session__name { font-weight: 700; }
+.pf-session__meta { color: var(--ui-text-muted); }
+
+/* ---------- DASHBOARD: danh sách môn ---------- */
+/* Danh sách môn: lưới 2 cột khi đủ rộng (mỗi thẻ tối thiểu 420px), hẹp thì 1 cột */
+.pf-courses { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr)); gap: var(--ui-space-3); margin: 0; padding: 0; list-style: none; }
+@media (max-width: 520px) { .pf-courses { grid-template-columns: 1fr; } }
+.pf-course {
+  padding: var(--ui-space-3) var(--ui-space-4);
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-left: 4px solid var(--course-color);
+  border-radius: var(--ui-radius);
+}
+.pf-course__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--ui-space-2); }
+.pf-course__name { font-weight: 700; }
+.pf-course__meta { margin: 0 0 var(--ui-space-2); font-size: 0.85rem; color: var(--ui-text-muted); }
+.pf-course__text { margin: var(--ui-space-2) 0 0; font-size: 0.9rem; }
+
+/* Thanh tiến độ: màu fill đổi theo mức cảnh báo của môn (biến --lv) */
+.pf-course--safe { --lv: var(--ui-safe); }
+.pf-course--warning { --lv: var(--ui-warning); }
+.pf-course--danger { --lv: var(--ui-danger); }
+/* Thẻ môn danger chiếm trọn một hàng: banner chỉ làm cao hàng của chính nó,
+   không kéo giãn các thẻ môn khác (trong Grid, các thẻ cùng hàng cao bằng nhau). */
+.pf-course--danger { grid-column: 1 / -1; }
+.pf-bar { height: 12px; overflow: hidden; background: var(--ui-upcoming-bg); border-radius: 999px; }
+.pf-bar__fill { height: 100%; background: var(--lv); border-radius: 999px; transition: width 300ms; }
+
+.pf-badge { padding: 2px var(--ui-space-3); font-size: 0.8rem; font-weight: 700; color: #fff; border-radius: 999px; }
+.pf-badge--safe { background: var(--ui-safe); }
+.pf-badge--warning { background: var(--ui-warning); }
+.pf-badge--danger { background: var(--ui-danger); }
+
+/* Banner nhắc nhở của môn danger */
+.pf-banner {
+  margin-top: var(--ui-space-3);
+  padding: var(--ui-space-3);
+  font-size: 0.9rem;
+  color: var(--ui-danger);
+  background: var(--ui-danger-bg);
+  border-left: 4px solid var(--ui-danger);
+  border-radius: var(--ui-radius-sm);
+}
+
+/* ---------- PROFILE: khung tóm tắt ---------- */
+.pf-summary {
+  margin-bottom: var(--ui-space-4);
+  padding: var(--ui-space-4);
+  color: #fff;
+  background: var(--ui-primary);
+  border-radius: var(--ui-radius);
+}
+.pf-summary__name { margin: 0; font-size: 1.25rem; }
+.pf-summary__line { margin: 0; font-size: 0.9rem; opacity: 0.9; }
+
+/* ---------- PROFILE: form ---------- */
+/* Form chia 2 cột bằng Grid trên màn hình rộng: thông tin (2 phần) | cài đặt (1 phần).
+   Màn hình hẹp tự xuống 1 cột. Nút Lưu luôn chiếm trọn hàng cuối. */
+.pf-form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--ui-space-4);
+  align-items: start;
+}
+@media (min-width: 1100px) {
+  .pf-form { grid-template-columns: 2fr 1fr; }
+}
+.pf-actions { grid-column: 1 / -1; }
+
+/* Ô trong phần thông tin xếp lưới tự động (MSSV | Họ tên | Email | SĐT | Lớp) */
+.pf-fieldset--info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--ui-space-2) var(--ui-space-4);
+}
+.pf-fieldset--info legend { grid-column: 1 / -1; }
+.pf-fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+  margin: 0;
+  padding: var(--ui-space-4);
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius);
+}
+.pf-fieldset legend { padding: 0 var(--ui-space-2); font-weight: 700; color: var(--ui-primary-dark); }
+.pf-field { display: flex; flex-direction: column; gap: var(--ui-space-1); }
+.pf-label { font-weight: 600; }
+.pf-input {
+  padding: var(--ui-space-2) var(--ui-space-3);
+  font: inherit;
+  border: 1px solid var(--ui-border-strong);   /* đủ tương phản để thấy ô nhập */
+  border-radius: var(--ui-radius-sm);
+}
+.pf-input:focus { border-color: var(--ui-primary); }
+.pf-input[aria-invalid="true"] { border-color: var(--ui-danger); background: var(--ui-danger-bg); }
+.pf-error { margin: 0; font-size: 0.85rem; color: var(--ui-danger); }  /* lỗi đỏ dưới ô */
+.pf-error:empty { display: none; }   /* ô hợp lệ thì không chừa khoảng trống */
+.pf-hint { margin: 0; font-size: 0.85rem; color: var(--ui-text-muted); }
+.pf-range { width: 100%; accent-color: var(--ui-primary); }
+.pf-check { display: flex; align-items: center; gap: var(--ui-space-2); cursor: pointer; }
+
+.pf-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ui-space-3); }
+.pf-save:disabled { cursor: not-allowed; opacity: 0.5; }   /* chưa hợp lệ -> mờ, không bấm được */
+.pf-status { margin: 0; color: var(--ui-safe); font-weight: 600; }
+
+.pf-danger-zone {
+  margin-top: var(--ui-space-5);
+  padding: var(--ui-space-4);
+  border: 1px dashed var(--ui-danger);
+  border-radius: var(--ui-radius);
+}
+.pf-danger-zone h3 { margin-top: 0; color: var(--ui-danger); }
+.pf-reset { color: var(--ui-danger); border-color: var(--ui-danger); }
+.pf-reset:hover { background: var(--ui-danger-bg); }
+
+/* ---------- Giảm chuyển động ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .pf-bar__fill { transition: none; }
+}

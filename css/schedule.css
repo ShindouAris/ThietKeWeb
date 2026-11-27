@@ -1,0 +1,209 @@
+/* ==========================================================
+   schedule.css — Lưới lịch tuần (CSS Grid), thẻ buổi học, animation chuyển tuần
+   Tiền tố class: .ui-
+   ========================================================== */
+
+/* ---------- 1. THANH ĐIỀU KHIỂN TUẦN + CHÚ THÍCH ---------- */
+.ui-week-controls {
+  display: flex;
+  flex-wrap: wrap;                     /* màn nhỏ tự xuống dòng */
+  align-items: center;
+  gap: var(--ui-space-3);
+  margin-bottom: var(--ui-space-4);
+}
+.ui-week-controls__title { flex: 1; margin: 0; font-weight: 700; text-align: center; white-space: nowrap; }
+
+.ui-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-2) var(--ui-space-4);
+  margin: 0 0 var(--ui-space-4);
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+}
+.ui-legend__item::before {             /* chấm màu trước mỗi trạng thái */
+  content: "";
+  display: inline-block;
+  width: 0.8rem;
+  height: 0.8rem;
+  margin-right: var(--ui-space-1);
+  vertical-align: -1px;
+  background: var(--dot);
+  border-radius: 3px;
+}
+.ui-legend__item--present  { --dot: var(--ui-present); }
+.ui-legend__item--absent   { --dot: var(--ui-absent); }
+.ui-legend__item--excused  { --dot: var(--ui-excused); }
+.ui-legend__item--upcoming { --dot: var(--ui-upcoming); }
+
+/* ---------- 2. LƯỚI TUẦN (CSS Grid) ----------
+   Cột: 1 cột tên ca (96px) + 7 cột ngày chia đều (1fr).
+   Hàng: 1 hàng tiêu đề ngày + 4 hàng ca.
+   Phần tử con xếp theo thứ tự HTML: góc trống, 7 tiêu đề ngày, rồi mỗi hàng gồm
+   [tên ca, 7 ô] -> tự động rơi đúng vào ô lưới, không cần chỉ định vị trí.
+   gap 1px + nền màu viền => tạo đường kẻ lưới mà không cần border từng ô. */
+.ui-week-scroll { overflow-x: auto; }  /* tablet hẹp: cuộn ngang thay vì bóp méo */
+.ui-week-scroll:focus-visible { outline-offset: 4px; }
+
+.ui-week {
+  display: grid;
+  /* Mỗi cột ngày tối thiểu 90px → lưới tối thiểu ~736px: từ 1024px (khung còn ~741px) vừa đủ 7 cột,
+     hẹp hơn thì vùng .ui-week-scroll tự cuộn ngang. */
+  grid-template-columns: 96px repeat(7, minmax(90px, 1fr));
+  grid-template-rows: auto repeat(4, minmax(96px, auto));
+  gap: 1px;
+  overflow: hidden;
+  background: var(--ui-border);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius);
+}
+
+.ui-week__corner,
+.ui-week__dayhead,
+.ui-week__shift,
+.ui-week__cell { background: var(--ui-surface); }
+
+.ui-week__dayhead {
+  padding: var(--ui-space-2);
+  font-weight: 700;
+  text-align: center;
+  color: var(--ui-primary-dark);
+  background: var(--ui-primary-light);
+}
+.ui-week__dayhead small { display: block; font-weight: 400; color: var(--ui-text-muted); }
+.ui-week__dayhead--today { color: #fff; background: var(--ui-primary); }
+.ui-week__dayhead--today small { color: #dce9f7; }
+
+.ui-week__shift {
+  display: flex;                        /* canh giữa tên ca theo chiều dọc */
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--ui-space-2);
+  font-weight: 700;
+  background: var(--ui-primary-light);
+}
+.ui-week__shift small { font-weight: 400; color: var(--ui-text-muted); }
+
+/* Ô ngày x ca: Flexbox dọc, nếu 2 môn trùng ca thì xếp chồng đều nhau */
+.ui-week__cell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-1);
+  padding: var(--ui-space-1);
+}
+.ui-week__cell--today { background: #f6faff; }
+.ui-week__cell::before { display: none; }   /* nhãn ngày chỉ dùng cho mobile */
+
+/* ---------- 3. THẺ BUỔI HỌC ----------
+   Là <button> để bàn phím dùng được; reset kiểu mặc định của trình duyệt.
+   Viền trái = màu môn (--course-color truyền từ HTML/JS), nền = màu trạng thái.
+   Hai tín hiệu độc lập nên nhìn là biết "môn nào" và "trạng thái gì". */
+.ui-session {
+  display: flex;
+  flex-direction: column;
+  flex: 1;                              /* chia đều chiều cao ô khi có nhiều thẻ */
+  gap: 2px;
+  width: 100%;
+  padding: var(--ui-space-2) var(--ui-space-2) var(--ui-space-2) var(--ui-space-3);
+  font: inherit;
+  font-size: 0.8rem;
+  text-align: left;
+  color: var(--ui-text);
+  background: var(--status-bg, var(--ui-upcoming-bg));
+  border: 0;
+  border-left: 4px solid var(--course-color, var(--ui-primary));
+  border-radius: var(--ui-radius-sm);
+  cursor: pointer;
+  transition: transform 150ms, box-shadow 150ms;
+}
+.ui-session:hover { transform: translateY(-1px); box-shadow: var(--ui-shadow); }
+
+.ui-session__name { font-weight: 700; line-height: 1.25; }
+.ui-session__meta { color: var(--ui-text-muted); }
+.ui-session__status {
+  align-self: flex-start;               /* nhãn chỉ rộng vừa chữ */
+  margin-top: auto;                     /* đẩy xuống đáy thẻ */
+  padding: 1px var(--ui-space-2);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--status-fg);
+  border-radius: 999px;
+}
+
+/* 4 trạng thái: mỗi class chỉ đặt 2 biến, phần còn lại dùng chung */
+.ui-session--present  { --status-bg: var(--ui-present-bg);  --status-fg: var(--ui-present); }
+.ui-session--absent   { --status-bg: var(--ui-absent-bg);   --status-fg: var(--ui-absent); }
+.ui-session--excused  { --status-bg: var(--ui-excused-bg);  --status-fg: var(--ui-excused); }
+.ui-session--upcoming { --status-bg: var(--ui-upcoming-bg); --status-fg: var(--ui-upcoming); }
+
+/* ---------- 4. ANIMATION CHUYỂN TUẦN ----------
+   JS thêm class vào vùng lưới sau khi vẽ tuần mới, hết 300ms thì gỡ ra.
+   .ui-slide-left : tuần mới trượt vào từ bên trái  (bấm "Tuần trước")
+   .ui-slide-right: tuần mới trượt vào từ bên phải  (bấm "Tuần sau") */
+.ui-slide-left  { animation: ui-slide-from-left 300ms ease-out; }
+.ui-slide-right { animation: ui-slide-from-right 300ms ease-out; }
+
+@keyframes ui-slide-from-left {
+  from { opacity: 0; transform: translateX(-40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes ui-slide-from-right {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Người dùng bật "giảm chuyển động" trong hệ điều hành -> tắt hiệu ứng */
+@media (prefers-reduced-motion: reduce) {
+  .ui-slide-left,
+  .ui-slide-right { animation: none; }
+  .ui-session { transition: none; }
+  .ui-session:hover { transform: none; }
+}
+
+/* ---------- 5. MOBILE (< 768px): DANH SÁCH THEO NGÀY ----------
+   Cùng một HTML, chỉ đổi CSS: bỏ Grid, dùng Flexbox dọc.
+   - Ẩn góc, tiêu đề ngày, tên ca (không còn bảng nên không cần).
+   - Mỗi ô là một "mục danh sách"; nhãn ngày + ca lấy từ data-label bằng ::before.
+   - order = ngày*10 + ca (biến --day, --shift gắn ở HTML) -> sắp theo ngày rồi theo ca.
+   - Ô không có buổi học thì ẩn (:not(:has(...))). */
+@media (max-width: 767px) {
+  /* Thanh điều hướng tuần: tiêu đề một hàng riêng ở trên, 3 nút chia đều hàng dưới */
+  .ui-week-controls { gap: var(--ui-space-2); }
+  .ui-week-controls__title { flex: 1 0 100%; order: -1; }
+  .ui-week-controls .ui-btn { flex: 1 1 auto; padding-inline: var(--ui-space-2); white-space: nowrap; }
+
+  .ui-week-scroll { overflow-x: visible; }
+
+  .ui-week {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: var(--ui-space-3);
+    background: none;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .ui-week__corner,
+  .ui-week__dayhead,
+  .ui-week__shift { display: none; }
+
+  .ui-week__cell {
+    order: calc(var(--day) * 10 + var(--shift));
+    padding: var(--ui-space-3);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--ui-radius);
+  }
+  .ui-week__cell:not(:has(.ui-session)) { display: none; }
+  .ui-week__cell::before {
+    display: block;
+    content: attr(data-label);
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--ui-primary-dark);
+  }
+
+  .ui-session { font-size: 0.9rem; }
+}

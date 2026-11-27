@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kiểm thử logic.js</title>
+  <link rel="icon" type="image/png" href="../assets/logo-chimlac-nobg.png">
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 860px; margin: 2rem auto; padding: 0 1rem; }
+    #summary { font-weight: 700; font-size: 1.1rem; }
+    ul { padding: 0; list-style: none; }
+    li { padding: 4px 8px; margin: 2px 0; border-radius: 4px; font-family: monospace; font-size: 0.85rem; }
+    li.pass { background: #e4f5ea; }
+    li.fail { background: #fde8e6; font-weight: 700; }
+    h2 { margin-top: 1.5rem; font-size: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>Kiểm thử js/logic.js</h1>
+  <p>Chạy qua server (<code>npx serve .</code> rồi mở <code>/docs/logic-test.html</code>) vì dùng ES Modules.
+     Kết quả hiện ở đây và ở Console (console.assert).</p>
+  <p id="summary"></p>
+  <div id="results"></div>
+
+  <script type="module">
+    import * as L from "../js/logic.js";
+    import { SESSIONS, COURSES, SETTINGS } from "../js/data.js";
+
+    let passed = 0, failed = 0;
+    let list = null;
+
+    const group = (title) => {
+      const h = document.createElement("h2");
+      h.textContent = title;
+      list = document.createElement("ul");
+      document.getElementById("results").append(h, list);
+    };
+
+    // So sánh sâu bằng JSON (đủ cho dữ liệu thuần của dự án)
+    const check = (name, actual, expected) => {
+      const ok = JSON.stringify(actual) === JSON.stringify(expected);
+      console.assert(ok, name, { actual, expected });
+      ok ? passed++ : failed++;
+      const li = document.createElement("li");
+      li.className = ok ? "pass" : "fail";
+      li.textContent = ok
+        ? `✔ ${name}`
+        : `✘ ${name} — nhận ${JSON.stringify(actual)}, mong đợi ${JSON.stringify(expected)}`;
+      list.append(li);
+    };
+
+    const TODAY = "2026-11-27";
+    const course = (courseId, totalSessions = 15) => ({ courseId, totalSessions });
+    const sess = (courseId, date, status, shift = 1) => ({ sessionId: `${courseId}-${date}`, courseId, date, shift, status });
+    const stat = (id) => L.getAllCourseStats(SESSIONS, COURSES, SETTINGS, TODAY).find((s) => s.courseId === id);
+
+    // ---------- getWeekRange ----------
+    group("getWeekRange");
+    check("Thứ Hai → chính nó là start", L.getWeekRange("2026-09-07"), { start: "2026-09-07", end: "2026-09-13" });
+    check("Thứ Tư giữa tuần", L.getWeekRange("2026-09-09"), { start: "2026-09-07", end: "2026-09-13" });
+    check("Chủ Nhật thuộc tuần vừa kết thúc", L.getWeekRange("2026-09-13"), { start: "2026-09-07", end: "2026-09-13" });
+    check("Tuần qua năm mới (31/12/2026)", L.getWeekRange("2026-12-31"), { start: "2026-12-28", end: "2027-01-03" });
+    check("Ngày đầu năm 2027 cùng tuần với 31/12", L.getWeekRange("2027-01-01"), { start: "2026-12-28", end: "2027-01-03" });
+    check("Tuần có 29/02 năm nhuận", L.getWeekRange("2024-02-29"), { start: "2024-02-26", end: "2024-03-03" });
+    check("Nhận đối tượng Date (giờ địa phương)", L.getWeekRange(new Date(2026, 8, 9)), { start: "2026-09-07", end: "2026-09-13" });
+
+    // ---------- getSessionsByWeek / Month ----------
+    group("getSessionsByWeek / getSessionsByMonth");
+    const w = L.getSessionsByWeek(SESSIONS, "2026-09-09");
+    check("Tuần 1 có 5 buổi (mỗi môn 1 buổi)", w.length, 5);
+    check("Sắp theo ngày rồi ca (T5 ca 1 trước T5 ca 3)", w.map((s) => s.sessionId), ["CTDL-01", "OOP-01", "CSDL-01", "MMT-01", "WEB-01"]);
+    check("Tuần không có lịch → []", L.getSessionsByWeek(SESSIONS, "2026-08-10"), []);
+    check("Tuần sau khi kết thúc học kỳ → []", L.getSessionsByWeek(SESSIONS, "2026-12-21"), []);
+    check("Danh sách rỗng → []", L.getSessionsByWeek([], "2026-09-09"), []);
+    check("Tuần vắt qua năm mới lấy đúng buổi cuối năm", L.getSessionsByWeek([sess("A", "2026-12-31", "upcoming"), sess("A", "2027-01-02", "upcoming"), sess("A", "2027-01-04", "upcoming")], "2027-01-01").length, 2);
+    check("Tháng 9/2026 có 18 buổi (T2-T4 mỗi môn 4 buổi, T5 mỗi môn 3 buổi)", L.getSessionsByMonth(SESSIONS, 2026, 9).length, 18);
+    check("Tháng 12/2026 có 14 buổi (CTDL-13 rơi vào 30/11)", L.getSessionsByMonth(SESSIONS, 2026, 12).length, 14);
+    check("Tháng không có lịch (2026-01) → []", L.getSessionsByMonth(SESSIONS, 2026, 1), []);
+    check("Tháng 1 năm sau không lẫn tháng 12", L.getSessionsByMonth([sess("A", "2026-12-31", "present"), sess("A", "2027-01-01", "upcoming")], 2027, 1).map((s) => s.date), ["2027-01-01"]);
+    check("Không làm đổi mảng gốc", (() => { const a = [sess("A", "2026-09-08", "present"), sess("A", "2026-09-07", "present")]; L.getSessionsByWeek(a, "2026-09-07"); return a[0].date; })(), "2026-09-08");
+
+    // ---------- calcAttendance ----------
+    group("calcAttendance");
+    check("Chưa có buổi nào diễn ra → mọi tỷ lệ = 0, không NaN",
+      L.calcAttendance([sess("A", "2026-12-01", "upcoming")], course("A"), TODAY),
+      { attended: 0, absent: 0, excused: 0, held: 0, total: 15, attendRate: 0, absentRate: 0 });
+    check("Không có buổi nào của môn → toàn 0", L.calcAttendance([], course("A"), TODAY).held, 0);
+    check("totalSessions = 0 không chia cho 0", L.calcAttendance([sess("A", "2026-09-07", "absent")], course("A", 0), TODAY).absentRate, 0);
+    check("Chỉ đếm đúng môn", L.calcAttendance([sess("A", "2026-09-07", "present"), sess("B", "2026-09-07", "absent")], course("A"), TODAY).held, 1);
+    check("CSDL (dữ liệu mẫu): 8 có mặt, 3 vắng, 1 phép, đã học 12",
+      (({ attended, absent, excused, held, total }) => ({ attended, absent, excused, held, total }))(L.calcAttendance(SESSIONS, COURSES[2], TODAY)),
+      { attended: 8, absent: 3, excused: 1, held: 12, total: 15 });
+    check("CSDL attendRate = 8/12", L.calcAttendance(SESSIONS, COURSES[2], TODAY).attendRate, 8 / 12);
+    check("CSDL absentRate = 4/15 (chia cho totalSessions)", L.calcAttendance(SESSIONS, COURSES[2], TODAY).absentRate, 4 / 15);
+
+    // ---------- getWarningLevel ----------
+    group("getWarningLevel (warningAt 0.15, absenceLimit 0.2)");
+    check("0 → safe", L.getWarningLevel(0, SETTINGS), "safe");
+    check("0.1499 → safe", L.getWarningLevel(0.1499, SETTINGS), "safe");
+    check("0.15 (đúng ngưỡng) → warning", L.getWarningLevel(0.15, SETTINGS), "warning");
+    check("0.2 (đúng giới hạn) → warning", L.getWarningLevel(0.2, SETTINGS), "warning");
+    check("3/15 → warning (sai số số thực)", L.getWarningLevel(3 / 15, SETTINGS), "warning");
+    check("0.2001 → danger", L.getWarningLevel(0.2001, SETTINGS), "danger");
+    check("1 → danger", L.getWarningLevel(1, SETTINGS), "danger");
+
+    // ---------- remainingAbsences ----------
+    group("remainingAbsences");
+    const fresh = L.calcAttendance([], course("A"), TODAY);
+    check("Chưa nghỉ buổi nào: floor(0.2 x 15) = 3", L.remainingAbsences(course("A"), fresh, SETTINGS), 3);
+    check("CTDL nghỉ 2 → còn 1", stat("CTDL").remaining, 1);
+    check("OOP nghỉ 3 (đúng giới hạn) → còn 0", stat("OOP").remaining, 0);
+    check("CSDL nghỉ 4 (vượt) → 0, không âm", stat("CSDL").remaining, 0);
+    check("Giới hạn 0 → 0", L.remainingAbsences(course("A"), fresh, { absenceLimit: 0 }), 0);
+    check("Môn 10 buổi, giới hạn 0.2 → 2", L.remainingAbsences(course("A", 10), { absent: 0, excused: 0 }, SETTINGS), 2);
+
+    // ---------- getAllCourseStats ----------
+    group("getAllCourseStats");
+    const all = L.getAllCourseStats(SESSIONS, COURSES, SETTINGS, TODAY);
+    check("Trả đủ 5 môn", all.length, 5);
+    check("Mức từng môn (CTDL, OOP, CSDL, MMT, WEB)", all.map((s) => s.level), ["safe", "warning", "danger", "safe", "safe"]);
+    check("Mỗi phần tử giữ tham chiếu course", all[0].course.courseName, "Cấu trúc dữ liệu và giải thuật");
+    check("Không có môn → []", L.getAllCourseStats(SESSIONS, [], SETTINGS, TODAY), []);
+
+    // ---------- getOverallStats ----------
+    group("getOverallStats");
+    const o = L.getOverallStats(SESSIONS, COURSES, SETTINGS, TODAY);
+    check("Số môn theo mức", o.levelCounts, { safe: 3, warning: 1, danger: 1 });
+    check("Tổng đã diễn ra = 60, tổng buổi = 75", [o.held, o.total], [60, 75]);
+    check("Nghỉ gộp = 12 → absentRate 12/75", o.absentRate, 12 / 75);
+    check("overallLevel = danger (môn nặng nhất)", o.overallLevel, "danger");
+    check("Môn nghỉ nhiều nhất = CSDL", o.worstCourse.courseId, "CSDL");
+    check("alertCourses = OOP + CSDL", o.alertCourses.map((c) => c.courseId), ["OOP", "CSDL"]);
+    check("upcoming tối đa 5", o.upcoming.length, 5);
+    const empty = L.getOverallStats([], [], SETTINGS, TODAY);
+    check("Không môn, không buổi: toàn 0, worstCourse null",
+      [empty.held, empty.attendRate, empty.absentRate, empty.overallLevel, empty.worstCourse, empty.upcoming],
+      [0, 0, 0, "safe", null, []]);
+    const noHeld = L.getOverallStats(SESSIONS.map((s) => ({ ...s, status: "upcoming" })), COURSES, SETTINGS, TODAY);
+    check("Học kỳ chưa bắt đầu: attendRate 0, 5 môn safe", [noHeld.attendRate, noHeld.levelCounts.safe], [0, 5]);
+
+    // ---------- getUpcomingSessions ----------
+    group("getUpcomingSessions");
+    const up = L.getUpcomingSessions(SESSIONS, TODAY, 3);
+    check("limit = 3 → 3 buổi", up.length, 3);
+    check("Sắp đúng thời gian: buổi đầu là CTDL 30/11", up[0].sessionId, "CTDL-13");
+    check("Toàn bộ upcoming = 15 buổi", L.getUpcomingSessions(SESSIONS, TODAY, 100).length, 15);
+    check("Mặc định limit = 5", L.getUpcomingSessions(SESSIONS, TODAY).length, 5);
+    check("Hết học kỳ → []", L.getUpcomingSessions(SESSIONS, "2027-01-05"), []);
+    check("limit 0 → []", L.getUpcomingSessions(SESSIONS, TODAY, 0), []);
+    check("Buổi hôm nay vẫn tính", L.getUpcomingSessions([sess("A", TODAY, "upcoming")], TODAY).length, 1);
+    check("Bỏ qua buổi đã điểm danh", L.getUpcomingSessions([sess("A", "2026-12-01", "present")], TODAY), []);
+
+    // ---------- nextStatus ----------
+    group("nextStatus");
+    check("present → absent", L.nextStatus("present"), "absent");
+    check("absent → excused", L.nextStatus("absent"), "excused");
+    check("excused → present", L.nextStatus("excused"), "present");
+    check("upcoming → present", L.nextStatus("upcoming"), "present");
+    check("Giá trị lạ → present", L.nextStatus("xyz"), "present");
+
+    // ---------- Tổng kết ----------
+    const summary = document.getElementById("summary");
+    summary.textContent = failed === 0 ? `✔ Tất cả ${passed} ca đều đạt` : `✘ ${failed} ca lỗi / ${passed + failed} ca`;
+    summary.style.color = failed === 0 ? "#1f7a3d" : "#b42318";
+    console.log(summary.textContent);
+  </script>
+</body>
+</html>

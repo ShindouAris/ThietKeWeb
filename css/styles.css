@@ -1,0 +1,322 @@
+/* ==========================================================
+   styles.css — Biến dùng chung, layout sidebar + main, toast
+   Tiền tố class: .ui-
+   ========================================================== */
+
+/* ---------- 1. BIẾN TOÀN CỤC ----------
+   Mọi màu / khoảng cách đều khai báo ở đây để đổi một chỗ là đổi cả web. */
+:root {
+  /* Màu chủ đạo xanh dương LHU */
+  --ui-primary: #0b5cad;
+  --ui-primary-dark: #084580;
+  --ui-primary-light: #e7f0fa;
+
+  /* Màu nền, chữ, viền */
+  --ui-bg: #f4f7fb;
+  --ui-surface: #ffffff;
+  --ui-text: #1d2733;
+  --ui-text-muted: #5f6b7a;
+  --ui-border: #d9e0e8;          /* viền trang trí (thẻ, lưới) */
+  --ui-border-strong: #7b8794;   /* viền ô nhập: tương phản 3.66:1 với nền trắng (WCAG ≥ 3:1) */
+  --ui-focus: #084580;           /* viền focus: tương phản 9.66:1 */
+
+  /* Trạng thái buổi học: màu chữ/viền + màu nền nhạt */
+  --ui-present: #1f7a3d;   --ui-present-bg: #e4f5ea;   /* có mặt */
+  --ui-absent: #b42318;    --ui-absent-bg: #fde8e6;    /* vắng */
+  --ui-excused: #0b6e8a;   --ui-excused-bg: #e0f3f8;   /* có phép */
+  --ui-upcoming: #5f6b7a;  --ui-upcoming-bg: #eef1f5;  /* sắp tới */
+
+  /* Mức cảnh báo chuyên cần */
+  --ui-safe: #1f7a3d;      --ui-safe-bg: #e4f5ea;
+  --ui-warning: #a15c00;   --ui-warning-bg: #fff3d6;
+  --ui-danger: #b42318;    --ui-danger-bg: #fde8e6;
+
+  /* Khoảng cách (thang 4px) */
+  --ui-space-1: 0.25rem;
+  --ui-space-2: 0.5rem;
+  --ui-space-3: 0.75rem;
+  --ui-space-4: 1rem;
+  --ui-space-5: 1.5rem;
+  --ui-space-6: 2rem;
+
+  /* Bo góc và bóng đổ */
+  --ui-radius-sm: 6px;
+  --ui-radius: 10px;
+  --ui-radius-lg: 16px;
+  --ui-shadow: 0 2px 8px rgb(16 40 70 / 12%);
+
+  /* Kích thước layout */
+  --ui-sidebar-width: 220px;
+  --ui-bottombar-height: 64px;
+  --ui-header-height: 64px;      /* header cố định chiều cao để toast/cuộn tính được vị trí */
+}
+
+/* ---------- 2. NỀN TẢNG ----------
+   box-sizing: border-box để width đã tính cả padding + border (dễ canh layout). */
+*, *::before, *::after { box-sizing: border-box; }
+
+/* Header dính ở trên: khi cuộn tới một phần tử (skip link, Tab vào thẻ buổi học...),
+   trình duyệt chừa ra đúng chiều cao header để phần tử không bị header che. */
+html { scroll-padding-top: calc(var(--ui-header-height) + var(--ui-space-2)); }
+
+body.ui-page {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;                 /* header - layout - footer xếp dọc */
+  flex-direction: column;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  color: var(--ui-text);
+  background: var(--ui-bg);
+  line-height: 1.5;
+}
+
+/* ---------- 3. HEADER & FOOTER ---------- */
+/* Header luôn hiện ở đầu màn hình khi cuộn (sticky top: 0), cùng cách làm với footer. */
+.ui-header {
+  position: sticky;
+  top: 0;
+  z-index: 950;                  /* trên nội dung và footer, dưới toast (1000) */
+  display: flex;                 /* logo bên trái, chữ bên phải */
+  align-items: center;
+  gap: var(--ui-space-3);
+  height: var(--ui-header-height);
+  padding: 0 var(--ui-space-5);
+  color: #fff;
+  background: var(--ui-primary);
+}
+.ui-header__logo { flex: none; width: auto; height: 40px; }  /* giữ đúng tỷ lệ logo */
+.ui-header__text {                /* tiêu đề + phụ đề cạnh nhau, hẹp thì xuống dòng */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--ui-space-3);
+  min-width: 0;
+}
+.ui-header__title { margin: 0; font-size: 1.25rem; }
+.ui-header__sub { margin: 0; font-size: 0.85rem; opacity: 0.85; }
+
+/* Footer luôn hiện ở đáy màn hình: position: sticky + bottom: 0.
+   Trang ngắn thì footer nằm cuối trang như bình thường; trang dài thì footer "dính" ở đáy khi cuộn.
+   Khác position: fixed ở chỗ footer vẫn chiếm chỗ trong luồng, nên không che mất nội dung cuối trang. */
+.ui-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 800;                  /* trên nội dung, dưới thanh điều hướng mobile (900) và toast (1000) */
+  padding: var(--ui-space-2) var(--ui-space-5);
+  font-size: 0.85rem;
+  text-align: center;
+  color: var(--ui-text-muted);
+  background: var(--ui-surface); /* nền đặc để chữ nội dung không lộ qua khi cuộn */
+  border-top: 1px solid var(--ui-border);
+}
+.ui-footer p { margin: 0; }
+
+/* ---------- 4. LAYOUT SIDEBAR + MAIN (Flexbox) ----------
+   .ui-layout là hàng ngang: sidebar cố định chiều rộng, main giãn phần còn lại (flex: 1).
+   min-width: 0 giúp main co lại được, không bị nội dung rộng đẩy tràn màn hình. */
+.ui-layout {
+  flex: 1;
+  display: flex;
+}
+
+.ui-sidebar {
+  flex: 0 0 var(--ui-sidebar-width);   /* không co, không giãn, rộng 220px */
+  padding: var(--ui-space-4);
+  background: var(--ui-surface);
+  border-right: 1px solid var(--ui-border);
+}
+
+.ui-nav {
+  display: flex;
+  flex-direction: column;              /* desktop: menu xếp dọc */
+  gap: var(--ui-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* Màn hình từ 768px: menu "dính" ngay dưới header khi cuộn trang.
+   Đặt sticky cho .ui-nav (không phải cả .ui-sidebar) để cột sidebar vẫn cao hết trang,
+   giữ nền trắng + đường viền phải liền mạch; chỉ khối menu bên trong là đứng yên. */
+@media (min-width: 768px) {
+  .ui-nav {
+    position: sticky;
+    top: calc(var(--ui-header-height) + var(--ui-space-4));
+  }
+}
+.ui-nav__link {
+  display: block;
+  padding: var(--ui-space-3) var(--ui-space-4);
+  color: var(--ui-text);
+  text-decoration: none;
+  border-radius: var(--ui-radius-sm);
+}
+.ui-nav__link:hover { background: var(--ui-primary-light); }
+.ui-nav__link[aria-current="page"] {   /* trang đang mở */
+  color: #fff;
+  background: var(--ui-primary);
+  cursor: default;               /* đã ở trang này: không gợi ý bấm được */
+}
+
+.ui-main {
+  flex: 1;
+  min-width: 0;
+  padding: var(--ui-space-5);
+}
+.ui-main h2 { margin-top: 0; color: var(--ui-primary-dark); }
+
+/* ---------- 5. NÚT & PHỤ KIỆN ---------- */
+.ui-btn {
+  padding: var(--ui-space-2) var(--ui-space-4);
+  font: inherit;
+  color: var(--ui-primary);
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-primary);
+  border-radius: var(--ui-radius-sm);
+  cursor: pointer;
+}
+.ui-btn:hover { background: var(--ui-primary-light); }
+.ui-btn--primary { color: #fff; background: var(--ui-primary); }
+.ui-btn--primary:hover { background: var(--ui-primary-dark); }
+/* Viền focus khi dùng bàn phím (Tab). Màu xanh đậm để đủ tương phản trên nền sáng. */
+:focus-visible { outline: 3px solid var(--ui-focus); outline-offset: 2px; }
+.ui-header :focus-visible, .ui-nav__link[aria-current="page"]:focus-visible { outline-color: #fff; }
+
+/* Skip link: nằm ngoài màn hình, chỉ trượt vào khi được focus */
+.ui-skip {
+  position: absolute;
+  top: -100px;
+  left: var(--ui-space-4);
+  z-index: 2000;
+  padding: var(--ui-space-2) var(--ui-space-4);
+  color: #fff;
+  background: var(--ui-primary-dark);
+  border-radius: var(--ui-radius-sm);
+}
+.ui-skip:focus { top: var(--ui-space-2); }
+.ui-main:focus { outline: none; }   /* main chỉ nhận focus từ skip link, không cần viền */
+
+/* ---------- 6. TOAST CẢNH BÁO ----------
+   .ui-toast-stack: khung cố định góc trên phải, các toast xếp dọc bằng Flexbox.
+   pointer-events: none để khung không chặn click vào trang; từng toast bật lại. */
+.ui-toast-stack {
+  position: fixed;
+  top: calc(var(--ui-header-height) + var(--ui-space-3));   /* ngay dưới header, không đè lên */
+  right: var(--ui-space-4);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-3);
+  width: min(360px, calc(100vw - 2 * var(--ui-space-4)));
+  pointer-events: none;
+}
+
+.ui-toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ui-space-3);
+  padding: var(--ui-space-3) var(--ui-space-4);
+  color: var(--ui-text);
+  background: var(--toast-bg, var(--ui-safe-bg));
+  border-left: 6px solid var(--toast-color, var(--ui-safe));
+  border-radius: var(--ui-radius);
+  box-shadow: var(--ui-shadow);
+  animation: ui-toast-in 300ms ease-out;
+}
+.ui-toast__body { flex: 1; }
+.ui-toast__title { margin: 0; font-weight: 700; color: var(--toast-color); }
+.ui-toast__text { margin: 0; font-size: 0.9rem; }
+.ui-toast__close {
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--ui-text-muted);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+/* 3 biến thể chỉ đổi 2 biến màu -> không phải viết lại cả khối */
+.ui-toast--safe    { --toast-color: var(--ui-safe);    --toast-bg: var(--ui-safe-bg); }
+.ui-toast--warning { --toast-color: var(--ui-warning); --toast-bg: var(--ui-warning-bg); }
+.ui-toast--danger  { --toast-color: var(--ui-danger);  --toast-bg: var(--ui-danger-bg); }
+
+/* ---------- HỘP XÁC NHẬN (<dialog>, dựng trong js/ui.js) ----------
+   ::backdrop là lớp nền mờ phía sau hộp khi mở bằng showModal(). */
+.ui-dialog {
+  width: min(420px, calc(100vw - 2 * var(--ui-space-4)));
+  padding: 0;
+  color: var(--ui-text);
+  border: 0;
+  border-radius: var(--ui-radius-lg);
+  box-shadow: 0 12px 40px rgb(16 40 70 / 30%);
+}
+.ui-dialog::backdrop { background: rgb(16 40 70 / 45%); }
+.ui-dialog[open] { animation: ui-dialog-in 200ms ease-out; }
+.ui-dialog__box { padding: var(--ui-space-5); }
+.ui-dialog__title { margin: 0 0 var(--ui-space-2); font-size: 1.15rem; color: var(--ui-primary-dark); }
+.ui-dialog__message { margin: 0 0 var(--ui-space-5); color: var(--ui-text-muted); }
+.ui-dialog__actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--ui-space-2); }
+@keyframes ui-dialog-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Nút cho thao tác không hoàn tác được (xoá, khôi phục) */
+.ui-btn--danger { color: #fff; background: var(--ui-danger); border-color: var(--ui-danger); }
+.ui-btn--danger:hover { background: #8f1c13; }
+
+/* JS thêm class này trước khi xoá toast để có hiệu ứng biến mất */
+.ui-toast--hide { opacity: 0; transform: translateX(24px); transition: 250ms; }
+
+@keyframes ui-toast-in {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ---------- 7. MOBILE (< 768px): sidebar thành thanh điều hướng dưới ---------- */
+@media (max-width: 767px) {
+  .ui-layout { flex-direction: column; }
+
+  .ui-sidebar {
+    position: fixed;                   /* dính đáy màn hình */
+    inset: auto 0 0 0;                 /* top:auto, left/right/bottom: 0 */
+    z-index: 900;
+    flex: none;
+    height: var(--ui-bottombar-height);
+    padding: 0;
+    border-right: 0;
+    border-top: 1px solid var(--ui-border);
+  }
+  .ui-nav { flex-direction: row; height: 100%; gap: 0; }   /* menu xếp ngang */
+  .ui-nav li { flex: 1; }                                  /* 3 mục chia đều chiều rộng */
+  .ui-nav__link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 0 var(--ui-space-2);
+    font-size: 0.85rem;
+    text-align: center;
+    border-radius: 0;
+  }
+
+  :root { --ui-header-height: 56px; }
+  .ui-header { padding: 0 var(--ui-space-4); }
+  .ui-header__logo { height: 32px; }
+  .ui-header__title { font-size: 1.05rem; }   /* vừa 1 dòng ở màn 375px */
+  .ui-header__sub { font-size: 0.8rem; }
+  .ui-main { padding: var(--ui-space-4); }
+  /* chừa chỗ để footer/nội dung không bị thanh dưới che */
+  .ui-footer {
+    bottom: var(--ui-bottombar-height);   /* dính ngay trên thanh điều hướng dưới */
+    margin-bottom: var(--ui-bottombar-height);
+    padding: var(--ui-space-1) var(--ui-space-3);
+    font-size: 0.75rem;
+  }
+}
+
+/* ---------- 8. GIẢM CHUYỂN ĐỘNG ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .ui-toast { animation: none; }
+  .ui-toast--hide { transition: none; }
+  .ui-dialog[open] { animation: none; }
+}

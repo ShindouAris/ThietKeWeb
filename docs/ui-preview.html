@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UI Preview — LHU Attendance Tracker</title>
+  <link rel="icon" type="image/png" href="../assets/logo-chimlac-nobg.png">
+  <link rel="stylesheet" href="../css/styles.css">
+  <link rel="stylesheet" href="../css/schedule.css">
+</head>
+<body class="ui-page">
+  <!-- Trang xem thử giao diện: dữ liệu giả cứng, KHÔNG dùng js/data.js. -->
+  <header class="ui-header">
+    <img class="ui-header__logo" src="../assets/logo-chimlac-nobg.png" alt="Logo Chim Lạc – Đại học Lạc Hồng" width="64" height="36">
+    <div class="ui-header__text">
+      <h1 class="ui-header__title">LHU Attendance Tracker</h1>
+      <p class="ui-header__sub">Bản xem thử giao diện (dữ liệu giả)</p>
+    </div>
+  </header>
+
+  <div class="ui-layout">
+    <nav class="ui-sidebar" aria-label="Điều hướng chính">
+      <ul class="ui-nav">
+        <li><a class="ui-nav__link" href="#">Tổng quan</a></li>
+        <li><a class="ui-nav__link" href="#" aria-current="page">Thời khóa biểu</a></li>
+        <li><a class="ui-nav__link" href="#">Hồ sơ &amp; Cài đặt</a></li>
+      </ul>
+    </nav>
+
+    <main class="ui-main">
+      <h2>Thời khóa biểu &amp; Điểm danh</h2>
+
+      <div class="ui-week-controls">
+        <button type="button" class="ui-btn" id="prev">&larr; Tuần trước</button>
+        <p class="ui-week-controls__title">Tuần 12 · 23/11 – 29/11/2026</p>
+        <button type="button" class="ui-btn">Hôm nay</button>
+        <button type="button" class="ui-btn" id="next">Tuần sau &rarr;</button>
+      </div>
+
+      <ul class="ui-legend" aria-label="Chú thích trạng thái">
+        <li class="ui-legend__item ui-legend__item--present">Có mặt</li>
+        <li class="ui-legend__item ui-legend__item--absent">Vắng</li>
+        <li class="ui-legend__item ui-legend__item--excused">Có phép</li>
+        <li class="ui-legend__item ui-legend__item--upcoming">Sắp tới</li>
+      </ul>
+
+      <div class="ui-week-scroll" id="week-scroll">
+        <section class="ui-week" aria-label="Lịch tuần">
+          <div class="ui-week__corner"></div>
+          <div class="ui-week__dayhead">T2<small>23/11</small></div>
+          <div class="ui-week__dayhead">T3<small>24/11</small></div>
+          <div class="ui-week__dayhead">T4<small>25/11</small></div>
+          <div class="ui-week__dayhead">T5<small>26/11</small></div>
+          <div class="ui-week__dayhead ui-week__dayhead--today">T6<small>27/11</small></div>
+          <div class="ui-week__dayhead">T7<small>28/11</small></div>
+          <div class="ui-week__dayhead">CN<small>29/11</small></div>
+          <div class="ui-week__shift">Ca 1<small>Tiết 1–3</small></div>
+          <div class="ui-week__cell" style="--day:1;--shift:1" data-label="Thứ Hai 23/11 · Ca 1 (Tiết 1–3)">
+            <button type="button" class="ui-session ui-session--present" style="--course-color:#1e6fd9" data-session-id="DEMO">
+              <span class="ui-session__name">Cấu trúc dữ liệu và giải thuật</span>
+              <span class="ui-session__meta">Phòng A.301 · Tiết 1–3</span>
+              <span class="ui-session__status">Có mặt</span>
+            </button>
+          </div>
+          <div class="ui-week__cell" style="--day:2;--shift:1" data-label="Thứ Ba 24/11 · Ca 1 (Tiết 1–3)"></div>
+          <div class="ui-week__cell" style="--day:3;--shift:1" data-label="Thứ Tư 25/11 · Ca 1 (Tiết 1–3)"></div>
+          <div class="ui-week__cell" style="--day:4;--shift:1" data-label="Thứ Năm 26/11 · Ca 1 (Tiết 1–3)">
+            <button type="button" class="ui-session ui-session--present" style="--course-color:#8e44ad" data-session-id="DEMO">
+              <span class="ui-session__name">Mạng máy tính</span>
+              <span class="ui-session__meta">Phòng C.103 · Tiết 1–3</span>
+              <span class="ui-session__status">Có mặt</span>
+            </button>
+          </div>
+          <div class="ui-week__cell ui-week__cell--today" style="--day:5;--shift:1" data-label="Thứ Sáu 27/11 · Ca 1 (Tiết 1–3)"></div>
+          <div class="ui-week__cell" style="--day:6;--shift:1" data-label="Thứ Bảy 28/11 · Ca 1 (Tiết 1–3)"></div>
+          <div class="ui-week__cell" style="--day:7;--shift:1" data-label="Chủ nhật 29/11 · Ca 1 (Tiết 1–3)"></div>
+          <div class="ui-week__shift">Ca 2<small>Tiết 4–6</small></div>
+          <div class="ui-week__cell" style="--day:1;--shift:2" data-label="Thứ Hai 23/11 · Ca 2 (Tiết 4–6)"></div>
+          <div class="ui-week__cell" style="--day:2;--shift:2" data-label="Thứ Ba 24/11 · Ca 2 (Tiết 4–6)">
+            <button type="button" class="ui-session ui-session--absent" style="--course-color:#e67e22" data-session-id="DEMO">
+              <span class="ui-session__name">Lập trình hướng đối tượng</span>
+              <span class="ui-session__meta">Phòng B.205 · Tiết 4–6</span>
+              <span class="ui-session__status">Vắng</span>
+            </button>
+          </div>
+          <div class="ui-week__cell" style="--day:3;--shift:2" data-label="Thứ Tư 25/11 · Ca 2 (Tiết 4–6)"></div>
+          <div class="ui-week__cell" style="--day:4;--shift:2" data-label="Thứ Năm 26/11 · Ca 2 (Tiết 4–6)"></div>
+          <div class="ui-week__cell ui-week__cell--today" style="--day:5;--shift:2" data-label="Thứ Sáu 27/11 · Ca 2 (Tiết 4–6)">
+            <button type="button" class="ui-session ui-session--upcoming" style="--course-color:#e67e22" data-session-id="DEMO">
+              <span class="ui-session__name">Lập trình hướng đối tượng (bù)</span>
+              <span class="ui-session__meta">Phòng B.205 · Tiết 4–6</span>
+              <span class="ui-session__status">Sắp tới</span>
+            </button>
+            <button type="button" class="ui-session ui-session--upcoming" style="--course-color:#d63384" data-session-id="DEMO">
+              <span class="ui-session__name">Thiết kế Web (thực hành)</span>
+              <span class="ui-session__meta">Phòng Lab.2 · Tiết 4–6</span>
+              <span class="ui-session__status">Sắp tới</span>
+            </button>
+          </div>
+          <div class="ui-week__cell" style="--day:6;--shift:2" data-label="Thứ Bảy 28/11 · Ca 2 (Tiết 4–6)"></div>
+          <div class="ui-week__cell" style="--day:7;--shift:2" data-label="Chủ nhật 29/11 · Ca 2 (Tiết 4–6)"></div>
+          <div class="ui-week__shift">Ca 3<small>Tiết 7–9</small></div>
+          <div class="ui-week__cell" style="--day:1;--shift:3" data-label="Thứ Hai 23/11 · Ca 3 (Tiết 7–9)"></div>
+          <div class="ui-week__cell" style="--day:2;--shift:3" data-label="Thứ Ba 24/11 · Ca 3 (Tiết 7–9)"></div>
+          <div class="ui-week__cell" style="--day:3;--shift:3" data-label="Thứ Tư 25/11 · Ca 3 (Tiết 7–9)">
+            <button type="button" class="ui-session ui-session--excused" style="--course-color:#2ea44f" data-session-id="DEMO">
+              <span class="ui-session__name">Cơ sở dữ liệu</span>
+              <span class="ui-session__meta">Phòng A.402 · Tiết 7–9</span>
+              <span class="ui-session__status">Có phép</span>
+            </button>
+          </div>
+          <div class="ui-week__cell" style="--day:4;--shift:3" data-label="Thứ Năm 26/11 · Ca 3 (Tiết 7–9)">
+            <button type="button" class="ui-session ui-session--present" style="--course-color:#d63384" data-session-id="DEMO">
+              <span class="ui-session__name">Thiết kế Web</span>
+              <span class="ui-session__meta">Phòng Lab.2 · Tiết 7–9</span>
+              <span class="ui-session__status">Có mặt</span>
+            </button>
+          </div>
+          <div class="ui-week__cell ui-week__cell--today" style="--day:5;--shift:3" data-label="Thứ Sáu 27/11 · Ca 3 (Tiết 7–9)"></div>
+          <div class="ui-week__cell" style="--day:6;--shift:3" data-label="Thứ Bảy 28/11 · Ca 3 (Tiết 7–9)"></div>
+          <div class="ui-week__cell" style="--day:7;--shift:3" data-label="Chủ nhật 29/11 · Ca 3 (Tiết 7–9)"></div>
+          <div class="ui-week__shift">Ca 4<small>Tiết 10–12</small></div>
+          <div class="ui-week__cell" style="--day:1;--shift:4" data-label="Thứ Hai 23/11 · Ca 4 (Tiết 10–12)"></div>
+          <div class="ui-week__cell" style="--day:2;--shift:4" data-label="Thứ Ba 24/11 · Ca 4 (Tiết 10–12)"></div>
+          <div class="ui-week__cell" style="--day:3;--shift:4" data-label="Thứ Tư 25/11 · Ca 4 (Tiết 10–12)"></div>
+          <div class="ui-week__cell" style="--day:4;--shift:4" data-label="Thứ Năm 26/11 · Ca 4 (Tiết 10–12)"></div>
+          <div class="ui-week__cell ui-week__cell--today" style="--day:5;--shift:4" data-label="Thứ Sáu 27/11 · Ca 4 (Tiết 10–12)"></div>
+          <div class="ui-week__cell" style="--day:6;--shift:4" data-label="Thứ Bảy 28/11 · Ca 4 (Tiết 10–12)">
+            <button type="button" class="ui-session ui-session--upcoming" style="--course-color:#2ea44f" data-session-id="DEMO">
+              <span class="ui-session__name">Cơ sở dữ liệu (ôn tập)</span>
+              <span class="ui-session__meta">Phòng A.402 · Tiết 10–12</span>
+              <span class="ui-session__status">Sắp tới</span>
+            </button>
+          </div>
+          <div class="ui-week__cell" style="--day:7;--shift:4" data-label="Chủ nhật 29/11 · Ca 4 (Tiết 10–12)"></div>
+        </section>
+      </div>
+
+      <h3>Toast cảnh báo</h3>
+      <p>
+        <button type="button" class="ui-btn" data-toast="safe">Toast safe</button>
+        <button type="button" class="ui-btn" data-toast="warning">Toast warning</button>
+        <button type="button" class="ui-btn" data-toast="danger">Toast danger</button>
+      </p>
+    </main>
+  </div>
+
+  <footer class="ui-footer"><p>Đồ án Thiết kế Web (111101) — Đại học Lạc Hồng</p></footer>
+
+  <!-- Toast mẫu hiển thị sẵn -->
+  <div class="ui-toast-stack" id="toast-stack" role="status" aria-live="polite">
+    <div class="ui-toast ui-toast--danger">
+      <div class="ui-toast__body">
+        <p class="ui-toast__title">Cơ sở dữ liệu: vượt giới hạn vắng</p>
+        <p class="ui-toast__text">Đã nghỉ 4/15 buổi (26,7%). Nguy cơ cấm thi.</p>
+      </div>
+      <button type="button" class="ui-toast__close" aria-label="Đóng">&times;</button>
+    </div>
+    <div class="ui-toast ui-toast--warning">
+      <div class="ui-toast__body">
+        <p class="ui-toast__title">Lập trình hướng đối tượng: sắp chạm giới hạn</p>
+        <p class="ui-toast__text">Đã nghỉ 3/15 buổi (20%).</p>
+      </div>
+      <button type="button" class="ui-toast__close" aria-label="Đóng">&times;</button>
+    </div>
+    <div class="ui-toast ui-toast--safe">
+      <div class="ui-toast__body">
+        <p class="ui-toast__title">Mạng máy tính: an toàn</p>
+        <p class="ui-toast__text">Đã nghỉ 1/15 buổi (6,7%).</p>
+      </div>
+      <button type="button" class="ui-toast__close" aria-label="Đóng">&times;</button>
+    </div>
+  </div>
+
+  <!-- Script nhỏ chỉ để demo animation + toast; bản thật nằm trong schedule.js -->
+  <script>
+    const scroll = document.getElementById('week-scroll');
+    const slide = (cls) => {
+      scroll.classList.remove('ui-slide-left', 'ui-slide-right');
+      void scroll.offsetWidth;                 // buộc trình duyệt chạy lại animation
+      scroll.classList.add(cls);
+    };
+    document.getElementById('prev').onclick = () => slide('ui-slide-left');
+    document.getElementById('next').onclick = () => slide('ui-slide-right');
+
+    const stack = document.getElementById('toast-stack');
+    document.addEventListener('click', (e) => {
+      const kind = e.target.dataset.toast;
+      if (kind) {
+        const t = document.createElement('div');
+        t.className = 'ui-toast ui-toast--' + kind;
+        t.innerHTML = '<div class="ui-toast__body"><p class="ui-toast__title">Toast ' + kind + '</p><p class="ui-toast__text">Nội dung nhắc nhở mẫu.</p></div><button type="button" class="ui-toast__close" aria-label="Đóng">&times;</button>';
+        stack.append(t);
+      }
+      if (e.target.classList.contains('ui-toast__close')) e.target.closest('.ui-toast').remove();
+    });
+  </script>
+</body>
+</html>

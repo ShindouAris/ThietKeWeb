@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tổng quan — LHU Attendance Tracker</title>
+  <link rel="icon" type="image/png" href="assets/logo-chimlac-nobg.png">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="ui-page">
+  <!-- Link ẩn, hiện khi bấm Tab: nhảy thẳng vào nội dung, bỏ qua header + menu -->
+  <a class="ui-skip" href="#main">Bỏ qua, tới nội dung chính</a>
+  <header class="ui-header">
+    <img class="ui-header__logo" src="assets/logo-chimlac-nobg.png" alt="Logo Chim Lạc – Đại học Lạc Hồng" width="64" height="36">
+    <div class="ui-header__text">
+      <h1 class="ui-header__title">LHU Attendance Tracker</h1>
+      <p class="ui-header__sub">Thời khóa biểu &amp; Chuyên cần</p>
+    </div>
+  </header>
+
+  <div class="ui-layout">
+    <nav class="ui-sidebar" aria-label="Điều hướng chính">
+      <ul class="ui-nav">
+        <li><a class="ui-nav__link" href="index.html" aria-current="page">Tổng quan</a></li>
+        <li><a class="ui-nav__link" href="schedule.html">Thời khóa biểu</a></li>
+        <li><a class="ui-nav__link" href="profile.html">Hồ sơ &amp; Cài đặt</a></li>
+      </ul>
+    </nav>
+
+    <main class="ui-main" id="main" tabindex="-1">
+      <h2>Tổng quan chuyên cần</h2>
+      <!-- Khu vực thẻ môn học, cảnh báo: dashboard.js sẽ đổ nội dung vào đây -->
+      <section id="alerts" aria-label="Nhắc nhở"></section>
+      <section id="course-cards" aria-label="Chuyên cần theo môn"></section>
+    </main>
+  </div>
+
+  <footer class="ui-footer">
+    <p>Đồ án Thiết kế Web (111101) — Đại học Lạc Hồng</p>
+  </footer>
+
+  <!-- Vùng hiện toast cảnh báo (góc trên phải) -->
+  <div class="ui-toast-stack" id="toast-stack" role="status" aria-live="polite"></div>
+
+  <script type="module" src="js/dashboard.js"></script>
+</body>
+</html>
