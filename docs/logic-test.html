@@ -195,6 +195,18 @@
     check("Không có hồ sơ/cài đặt (chỉ buổi học) → vẫn hợp lệ", L.validateBackup({ app: "lhu-attendance", version: 1, sessions: SESSIONS }, COURSES).ok, true);
     check("Nhiều lỗi → báo tối đa 5 dòng", L.validateBackup({ ...roundTrip, sessions: roundTrip.sessions.map((x) => ({ ...x, shift: 9 })) }, COURSES).errors.length, 5);
 
+    // ---------- Buổi trong ngày ----------
+    group("getDayPart");
+    check("Tiết 1 → sáng", L.getDayPart({ periodStart: 1 }), "morning");
+    check("Tiết 4 (ca 2) → sáng", L.getDayPart({ periodStart: 4 }), "morning");
+    check("Tiết 6 (biên cuối buổi sáng) → sáng", L.getDayPart({ periodStart: 6 }), "morning");
+    check("Tiết 7 (biên đầu buổi chiều) → chiều", L.getDayPart({ periodStart: 7 }), "afternoon");
+    check("Tiết 10 (ca 4) → chiều", L.getDayPart({ periodStart: 10 }), "afternoon");
+    check("Tiết 13 → tối", L.getDayPart({ periodStart: 13 }), "evening");
+    check("Tiết ngoài khoảng (20) → tối, không lỗi", L.getDayPart({ periodStart: 20 }), "evening");
+    check("Dữ liệu mẫu: 45 buổi sáng, 30 buổi chiều, 0 buổi tối",
+      ["morning", "afternoon", "evening"].map((p) => SESSIONS.filter((x) => L.getDayPart(x) === p).length), [45, 30, 0]);
+
     // ---------- Tổng kết ----------
     const summary = document.getElementById("summary");
     summary.textContent = failed === 0 ? `✔ Tất cả ${passed} ca đều đạt` : `✘ ${failed} ca lỗi / ${passed + failed} ca`;

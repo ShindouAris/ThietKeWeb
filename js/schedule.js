@@ -14,10 +14,11 @@ import {
   canMark,
   getDisplayStatus,
   getUnmarkedSessions,
+  getDayPart,
 } from "./logic.js";
 import {
   pad, todayIso, addDays, addMonths, ddmm, ddmmyyyy, pct, esc, dayName,
-  DAY_SHORT, DAY_FULL, SHIFT_PERIODS, SHIFTS, STATUS_LABEL, LEVEL_LABEL,
+  DAY_SHORT, DAY_FULL, DAY_PARTS, STATUS_LABEL, LEVEL_LABEL,
 } from "./utils.js";
 
 const COURSE_MAP = new Map(COURSES.map((c) => [c.courseId, c]));
@@ -91,7 +92,7 @@ const sessionCardHtml = (s) => {
   const course = COURSE_MAP.get(s.courseId);
   const shown = getDisplayStatus(s, today); // "unmarked" nếu đã qua ngày mà chưa điểm danh
   const action = canMark(s, today) ? "Nhấn Enter để đổi trạng thái" : "Chưa diễn ra, chưa thể điểm danh";
-  const label = `${course.courseName}, ${dayName(s.date)} ${ddmm(s.date)}, ca ${s.shift}, phòng ${s.room}: ${STATUS_LABEL[shown]}. ${action}`;
+  const label = `${course.courseName}, ${dayName(s.date)} ${ddmm(s.date)}, tiết ${s.periodStart} đến ${s.periodEnd}, phòng ${s.room}: ${STATUS_LABEL[shown]}. ${action}`;
   return `
     <button type="button" class="ui-session ui-session--${shown}" style="--course-color:${esc(course.color)}" data-session-id="${esc(s.sessionId)}" aria-label="${esc(label)}">
       <span class="ui-session__name">${esc(course.courseName)}</span>
@@ -100,7 +101,8 @@ const sessionCardHtml = (s) => {
     </button>`;
 };
 
-/** Dựng lưới tuần: góc, 7 tiêu đề ngày, rồi mỗi ca gồm 1 nhãn ca + 7 ô. */
+/** Dựng lưới tuần: góc, 7 tiêu đề ngày, rồi mỗi buổi (Sáng/Chiều/Tối) gồm 1 nhãn buổi + 7 ô.
+ *  Một ô có thể chứa nhiều buổi học (VD sáng có cả ca 1 và ca 2) -> sắp theo ca. */
 const renderWeek = () => {
   const { start, end } = getWeekRange(state.viewDate);
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
@@ -109,13 +111,16 @@ const renderWeek = () => {
   const heads = days.map((d, i) => `
     <div class="ui-week__dayhead${d === today ? " ui-week__dayhead--today" : ""}">${DAY_SHORT[i]}<small>${ddmm(d)}</small></div>`);
 
-  const rows = SHIFTS.map((shift) => {
-    const [from, to] = SHIFT_PERIODS[shift];
+  const rows = DAY_PARTS.map((part, p) => {
     const cells = days.map((d, i) => {
-      const cards = weekSessions.filter((s) => s.date === d && s.shift === shift).map(sessionCardHtml).join("");
-      return `<div class="ui-week__cell${d === today ? " ui-week__cell--today" : ""}" style="--day:${i + 1};--shift:${shift}" data-label="${DAY_FULL[i]} ${ddmm(d)} · Ca ${shift} (Tiết ${from}–${to})">${cards}</div>`;
+      const cards = weekSessions
+        .filter((s) => s.date === d && getDayPart(s) === part.id)
+        .sort((a, b) => a.shift - b.shift)
+        .map(sessionCardHtml)
+        .join("");
+      return `<div class="ui-week__cell${d === today ? " ui-week__cell--today" : ""}" style="--day:${i + 1};--part:${p + 1}" data-label="${DAY_FULL[i]} ${ddmm(d)} · Buổi ${part.label.toLowerCase()} (Tiết ${part.from}–${part.to})">${cards}</div>`;
     });
-    return `<div class="ui-week__shift">Ca ${shift}<small>Tiết ${from}–${to}</small></div>${cells.join("")}`;
+    return `<div class="ui-week__part">${part.label}<small>Tiết ${part.from}–${part.to}</small></div>${cells.join("")}`;
   });
 
   gridEl.innerHTML = `<div class="ui-week__corner"></div>${heads.join("")}${rows.join("")}`;

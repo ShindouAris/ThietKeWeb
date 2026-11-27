@@ -38,10 +38,10 @@
 .ui-legend__item--upcoming { --dot: var(--ui-upcoming); }
 
 /* ---------- 2. LƯỚI TUẦN (CSS Grid) ----------
-   Cột: 1 cột tên ca (96px) + 7 cột ngày chia đều (1fr).
-   Hàng: 1 hàng tiêu đề ngày + 4 hàng ca.
+   Cột: 1 cột tên buổi (96px) + 7 cột ngày chia đều (1fr).
+   Hàng: 1 hàng tiêu đề ngày + 3 hàng buổi (Sáng / Chiều / Tối).
    Phần tử con xếp theo thứ tự HTML: góc trống, 7 tiêu đề ngày, rồi mỗi hàng gồm
-   [tên ca, 7 ô] -> tự động rơi đúng vào ô lưới, không cần chỉ định vị trí.
+   [tên buổi, 7 ô] -> tự động rơi đúng vào ô lưới, không cần chỉ định vị trí.
    gap 1px + nền màu viền => tạo đường kẻ lưới mà không cần border từng ô. */
 .ui-week-scroll { overflow-x: auto; }  /* tablet hẹp: cuộn ngang thay vì bóp méo */
 .ui-week-scroll:focus-visible { outline-offset: 4px; }
@@ -51,7 +51,7 @@
   /* Mỗi cột ngày tối thiểu 90px → lưới tối thiểu ~736px: từ 1024px (khung còn ~741px) vừa đủ 7 cột,
      hẹp hơn thì vùng .ui-week-scroll tự cuộn ngang. */
   grid-template-columns: 96px repeat(7, minmax(90px, 1fr));
-  grid-template-rows: auto repeat(4, minmax(96px, auto));
+  grid-template-rows: auto repeat(3, minmax(110px, auto));
   gap: 1px;
   overflow: hidden;
   background: var(--ui-border);
@@ -61,7 +61,7 @@
 
 .ui-week__corner,
 .ui-week__dayhead,
-.ui-week__shift,
+.ui-week__part,
 .ui-week__cell { background: var(--ui-surface); }
 
 .ui-week__dayhead {
@@ -75,17 +75,17 @@
 .ui-week__dayhead--today { color: #fff; background: var(--ui-primary); }
 .ui-week__dayhead--today small { color: #dce9f7; }
 
-.ui-week__shift {
-  display: flex;                        /* canh giữa tên ca theo chiều dọc */
+.ui-week__part {
+  display: flex;                        /* canh giữa tên buổi theo chiều dọc */
   flex-direction: column;
   justify-content: center;
   padding: var(--ui-space-2);
   font-weight: 700;
   background: var(--ui-primary-light);
 }
-.ui-week__shift small { font-weight: 400; color: var(--ui-text-muted); }
+.ui-week__part small { font-weight: 400; color: var(--ui-text-muted); }
 
-/* Ô ngày x ca: Flexbox dọc, nếu 2 môn trùng ca thì xếp chồng đều nhau */
+/* Ô ngày x buổi: Flexbox dọc, nhiều buổi học trong cùng buổi (VD ca 1 + ca 2) thì xếp chồng */
 .ui-week__cell {
   display: flex;
   flex-direction: column;
@@ -102,7 +102,7 @@
 .ui-session {
   display: flex;
   flex-direction: column;
-  flex: 1;                              /* chia đều chiều cao ô khi có nhiều thẻ */
+  flex: 0 0 auto;                       /* cao vừa nội dung: một buổi có thể chứa 1 hoặc 2 thẻ, không kéo giãn */
   gap: 2px;
   width: 100%;
   padding: var(--ui-space-2) var(--ui-space-2) var(--ui-space-2) var(--ui-space-3);
@@ -306,7 +306,7 @@
    thay vì bắt người dùng cuộn ngang. Cùng một HTML, chỉ đổi CSS:
    - Ẩn góc, tiêu đề ngày, tên ca (không còn bảng nên không cần).
    - Mỗi ô là một "mục danh sách"; nhãn ngày + ca lấy từ data-label bằng ::before.
-   - order = ngày*10 + ca (biến --day, --shift gắn ở HTML) -> sắp theo ngày rồi theo ca.
+   - order = ngày*10 + buổi (biến --day, --part gắn ở HTML) -> sắp theo ngày rồi theo buổi.
    - Ô không có buổi học thì ẩn (:not(:has(...))).
    Tablet (768–1023px) xếp 2 cột, mobile (< 768px) 1 cột. */
 @media (max-width: 1023px) {
@@ -325,10 +325,10 @@
 
   .ui-week__corner,
   .ui-week__dayhead,
-  .ui-week__shift { display: none; }
+  .ui-week__part { display: none; }
 
   .ui-week__cell {
-    order: calc(var(--day) * 10 + var(--shift));
+    order: calc(var(--day) * 10 + var(--part));
     padding: var(--ui-space-3);
     border: 1px solid var(--ui-border);
     border-radius: var(--ui-radius);

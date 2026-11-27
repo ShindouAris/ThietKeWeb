@@ -2,7 +2,7 @@
 // Dữ liệu vào qua tham số, kết quả trả ra bằng return -> dễ kiểm thử, dễ giải thích.
 // Quy ước ngày: chuỗi "YYYY-MM-DD" (so sánh chuỗi theo thứ tự chữ cái = so sánh ngày).
 
-import { toIso, addDays, isValidIsoDate } from "./utils.js"; // hàm ngày dùng chung (cũng là hàm thuần)
+import { toIso, addDays, isValidIsoDate, DAY_PARTS } from "./utils.js"; // hàm ngày dùng chung (cũng là hàm thuần)
 
 const EPS = 1e-9; // sai số nhỏ khi so sánh số thực (VD 3/15 so với 0.2)
 
@@ -332,3 +332,14 @@ export const createBackup = (sessions, profile, settings, exportedAt) => ({
   settings,
   sessions,
 });
+
+// ---------- Buổi trong ngày ----------
+
+/**
+ * Buổi (sáng / chiều / tối) của một buổi học, suy ra từ tiết bắt đầu theo DAY_PARTS:
+ * tiết 1–6 → "morning", 7–12 → "afternoon", 13 trở đi → "evening".
+ * @param {{periodStart: number}} session Buổi học.
+ * @returns {"morning"|"afternoon"|"evening"}
+ */
+export const getDayPart = (session) =>
+  (DAY_PARTS.find((p) => session.periodStart <= p.to) ?? DAY_PARTS[DAY_PARTS.length - 1]).id;

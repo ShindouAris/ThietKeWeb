@@ -58,9 +58,13 @@ export const esc = (s) =>
 export const DAY_SHORT = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 export const DAY_FULL = ["Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy", "Chủ nhật"];
 
-/** Ca học → [tiết bắt đầu, tiết kết thúc]. */
-export const SHIFT_PERIODS = { 1: [1, 3], 2: [4, 6], 3: [7, 9], 4: [10, 12] };
-export const SHIFTS = [1, 2, 3, 4];
+/** 3 buổi trong ngày, mỗi buổi là một khoảng tiết. Lưới tuần chia hàng theo buổi.
+ *  Dữ liệu vẫn lưu `shift` (ca 1–4) đúng Data Contract; buổi được suy ra từ periodStart (logic.js). */
+export const DAY_PARTS = [
+  { id: "morning",   label: "Sáng",  from: 1,  to: 6 },
+  { id: "afternoon", label: "Chiều", from: 7,  to: 12 },
+  { id: "evening",   label: "Tối",   from: 13, to: 15 },
+];
 
 /** Nhãn trạng thái. "unmarked" không lưu trong dữ liệu: là buổi "upcoming" đã qua ngày (xem logic.js). */
 export const STATUS_LABEL = {

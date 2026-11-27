@@ -4,10 +4,13 @@
 import "./nav.js"; // sidebar: bấm trang đang mở thì không tải lại
 import { COURSES } from "./data.js";
 import { loadSessions, loadProfile, loadSettings } from "./storage.js";
-import { getOverallStats, getUpcomingSessions } from "./logic.js";
-import { todayIso, addDays, ddmm, ddmmyyyy, pct, esc, dayName, SHIFT_PERIODS, STATUS_LABEL, LEVEL_LABEL } from "./utils.js";
+import { getOverallStats, getUpcomingSessions, getDayPart } from "./logic.js";
+import { todayIso, addDays, ddmm, ddmmyyyy, pct, esc, dayName, DAY_PARTS, STATUS_LABEL, LEVEL_LABEL } from "./utils.js";
 
 const COURSE_MAP = new Map(COURSES.map((c) => [c.courseId, c]));
+
+/** Nhãn buổi của một buổi học: "Sáng" / "Chiều" / "Tối". */
+const partLabel = (s) => DAY_PARTS.find((p) => p.id === getDayPart(s)).label;
 
 /** Lời chào theo giờ trong ngày. */
 const greetingByHour = (hour) => (hour < 11 ? "Chào buổi sáng" : hour < 13 ? "Chào buổi trưa" : hour < 18 ? "Chào buổi chiều" : "Chào buổi tối");
@@ -29,11 +32,10 @@ const ensureEl = (id, tag, className, afterEl) => {
 /** Một dòng buổi học trong widget. `withDate` = true thì hiện thêm thứ + ngày. */
 const sessionItemHtml = (s, withDate) => {
   const course = COURSE_MAP.get(s.courseId);
-  const [from, to] = SHIFT_PERIODS[s.shift];
   const when = withDate ? `${dayName(s.date)} ${ddmm(s.date)} · ` : "";
   return `
     <li class="pf-session" style="--course-color:${esc(course.color)}">
-      <span class="pf-session__time">${when}Ca ${s.shift} · Tiết ${from}–${to}</span>
+      <span class="pf-session__time">${when}${partLabel(s)} · Tiết ${s.periodStart}–${s.periodEnd}</span>
       <span class="pf-session__name">${esc(course.courseName)}</span>
       <span class="pf-session__meta">Phòng ${esc(s.room)} · ${STATUS_LABEL[s.status]}</span>
     </li>`;
