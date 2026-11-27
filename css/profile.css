@@ -212,6 +212,26 @@
 .pf-reset { color: var(--ui-danger); border-color: var(--ui-danger); }
 .pf-reset:hover { background: var(--ui-danger-bg); }
 
+/* ---------- PROFILE trên mobile (< 768px) ----------
+   Các nút kéo hết chiều ngang (dễ bấm bằng ngón tay), nội dung trong khung căn giữa. */
+@media (max-width: 767px) {
+  .pf-actions {
+    flex-direction: column;            /* nút Lưu, cảnh báo, trạng thái xếp dọc */
+    align-items: stretch;              /* mỗi mục rộng bằng khung */
+    text-align: center;
+  }
+  .pf-unsaved {
+    flex: none;                        /* bỏ flex-basis 260px (theo cột dọc sẽ thành chiều cao) */
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+  .pf-danger-zone { text-align: center; }
+  .pf-save,
+  .pf-reset,
+  .pf-unsaved .ui-btn { width: 100%; }
+}
+
 /* ---------- Giảm chuyển động ---------- */
 @media (prefers-reduced-motion: reduce) {
   .pf-bar__fill { transition: none; }
