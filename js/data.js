@@ -1,4 +1,5 @@
 // data.js — Dữ liệu mẫu của dự án (đúng Data Contract trong CLAUDE.md)
+import { addDays } from "./utils.js"; // cộng ngày theo UTC, không lệch múi giờ
 // Các file khác chỉ import, KHÔNG sửa trực tiếp mảng này; thay đổi của người dùng lưu qua storage.js.
 
 // ---------- Sinh viên ----------
@@ -37,12 +38,6 @@ const PLAN = {
   WEB:  { dayOffset: 3, shift: 3, marks: { 5: "absent", 9: "excused" } },                      // 2/15 -> safe
 };
 
-// Cộng thêm n ngày vào ngày "YYYY-MM-DD" (dùng UTC để không bị lệch múi giờ)
-const addDays = (isoDate, n) => {
-  const d = new Date(`${isoDate}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + n);
-  return d.toISOString().slice(0, 10);
-};
 
 // ---------- Buổi học: 5 môn x 15 tuần = 75 buổi ----------
 export const SESSIONS = COURSES.flatMap((course) => {

@@ -2,16 +2,6 @@
 
 Đồ án môn Thiết kế Web (111101) — Đại học Lạc Hồng.
 
-## Thành viên & vai trò
-
-| Họ tên | MSSV | Vai trò |
-|---|---|---|
-|  |  | Nhóm trưởng |
-|  |  | UI/UX |
-|  |  | Data Logic |
-|  |  | Feature |
-|  |  | Dashboard & Profile |
-
 ## Mô tả
 
 Web tĩnh quản lý Thời khóa biểu & Chuyên cần cho sinh viên: xem lịch tuần/tháng, đánh dấu

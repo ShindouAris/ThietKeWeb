@@ -38,7 +38,43 @@
   box-shadow: var(--ui-shadow);
 }
 .pf-widget__title { margin: 0 0 var(--ui-space-2); font-size: 0.9rem; color: var(--ui-text-muted); }
-.pf-widget__big { margin: 0; font-size: 2.2rem; font-weight: 700; color: var(--ui-primary); }
+/* Vòng tròn tỷ lệ đi học: conic-gradient tô màu theo góc = --p% của vòng tròn,
+   lớp ::before tròn màu trắng ở giữa tạo thành "vành khuyên". Không cần SVG hay thư viện. */
+.pf-widget__row { display: flex; align-items: center; gap: var(--ui-space-4); }
+.pf-ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 96px;
+  height: 96px;
+  background: conic-gradient(var(--ui-primary) calc(var(--p) * 1%), var(--ui-upcoming-bg) 0);
+  border-radius: 50%;
+}
+.pf-ring::before {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  background: var(--ui-surface);
+  border-radius: 50%;
+}
+.pf-ring__value { position: relative; font-size: 1.15rem; font-weight: 700; color: var(--ui-primary); }
+
+/* Nhắc buổi đã qua chưa điểm danh */
+.pf-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-2) var(--ui-space-3);
+  margin-bottom: var(--ui-space-4);
+  padding: var(--ui-space-3);
+  color: var(--ui-warning);
+  background: var(--ui-warning-bg);
+  border-left: 4px solid var(--ui-warning);
+  border-radius: var(--ui-radius-sm);
+}
+.pf-notice span { flex: 1 1 260px; }
+.pf-notice .ui-btn { text-decoration: none; }
 .pf-widget__sub { margin: var(--ui-space-1) 0 0; font-size: 0.85rem; color: var(--ui-text-muted); }
 .pf-widget__pair { display: flex; flex-wrap: wrap; gap: var(--ui-space-2); margin: 0; }
 .pf-count { padding: var(--ui-space-1) var(--ui-space-3); border-radius: 999px; }
@@ -170,6 +206,49 @@
 .pf-save:disabled { cursor: not-allowed; opacity: 0.5; }   /* chưa hợp lệ -> mờ, không bấm được */
 .pf-status { margin: 0; color: var(--ui-safe); font-weight: 600; }
 
+/* Cảnh báo "chưa lưu": chỉ hiện khi form khác dữ liệu đã lưu (JS bật/tắt thuộc tính hidden) */
+.pf-unsaved {
+  display: flex;
+  flex: 1 1 260px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-2);
+  margin: 0;
+  padding: var(--ui-space-2) var(--ui-space-3);
+  font-weight: 600;
+  color: var(--ui-warning);
+  background: var(--ui-warning-bg);
+  border-left: 4px solid var(--ui-warning);
+  border-radius: var(--ui-radius-sm);
+}
+.pf-unsaved[hidden] { display: none; }
+.pf-unsaved__text { flex: 1 1 auto; }
+.pf-unsaved .ui-btn { padding: var(--ui-space-1) var(--ui-space-3); font-size: 0.9rem; }
+
+/* Khi có thay đổi chưa lưu: thanh nút Lưu "nổi" dính ở đáy màn hình (ngay trên footer)
+   để người dùng cuộn tới đâu cũng thấy cảnh báo và nút Lưu. */
+.pf-actions--dirty {
+  position: sticky;
+  bottom: calc(var(--ui-bottom-offset) + var(--ui-space-2));
+  z-index: 700;
+  padding: var(--ui-space-3);
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-warning);
+  border-radius: var(--ui-radius);
+  box-shadow: var(--ui-shadow);
+}
+
+/* Khung Sao lưu: xuất / nhập file JSON */
+.pf-data-zone {
+  margin-top: var(--ui-space-5);
+  padding: var(--ui-space-4);
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius);
+}
+.pf-data-zone h3 { margin-top: 0; color: var(--ui-primary-dark); }
+.pf-data-actions { display: flex; flex-wrap: wrap; gap: var(--ui-space-2); }
+
 .pf-danger-zone {
   margin-top: var(--ui-space-5);
   padding: var(--ui-space-4);
@@ -179,6 +258,28 @@
 .pf-danger-zone h3 { margin-top: 0; color: var(--ui-danger); }
 .pf-reset { color: var(--ui-danger); border-color: var(--ui-danger); }
 .pf-reset:hover { background: var(--ui-danger-bg); }
+
+/* ---------- PROFILE trên mobile (< 768px) ----------
+   Các nút kéo hết chiều ngang (dễ bấm bằng ngón tay), nội dung trong khung căn giữa. */
+@media (max-width: 767px) {
+  .pf-actions {
+    flex-direction: column;            /* nút Lưu, cảnh báo, trạng thái xếp dọc */
+    align-items: stretch;              /* mỗi mục rộng bằng khung */
+    text-align: center;
+  }
+  .pf-unsaved {
+    flex: none;                        /* bỏ flex-basis 260px (theo cột dọc sẽ thành chiều cao) */
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+  .pf-danger-zone,
+  .pf-data-zone { text-align: center; }
+  .pf-data-actions { flex-direction: column; }
+  .pf-save,
+  .pf-reset,
+  .pf-unsaved .ui-btn { width: 100%; }
+}
 
 /* ---------- Giảm chuyển động ---------- */
 @media (prefers-reduced-motion: reduce) {

@@ -1,38 +1,31 @@
 // dashboard.js — Trang Tổng quan (index.html).
-// Lấy dữ liệu từ storage.js, tính toán bằng logic.js, chỉ lo việc dựng giao diện.
+// Lấy dữ liệu từ storage.js, tính toán bằng logic.js, định dạng bằng utils.js; chỉ lo dựng giao diện.
+// Style (.pf-) nằm trong css/profile.css.
 import "./nav.js"; // sidebar: bấm trang đang mở thì không tải lại
 import { COURSES } from "./data.js";
 import { loadSessions, loadProfile, loadSettings } from "./storage.js";
-import { getOverallStats, getUpcomingSessions } from "./logic.js";
+import { getOverallStats, getUpcomingSessions, getDayPart } from "./logic.js";
+import { todayIso, addDays, ddmm, ddmmyyyy, pct, esc, dayName, DAY_PARTS, STATUS_LABEL, LEVEL_LABEL } from "./utils.js";
 
-// index.html chỉ nạp styles.css; style của widget (.pf-) nằm trong profile.css nên nạp thêm ở đây
-const cssLink = document.createElement("link");
-cssLink.rel = "stylesheet";
-cssLink.href = "css/profile.css";
-document.head.append(cssLink);
-
-// ---------- Hằng số & hàm hiển thị ----------
-const DAY_FULL = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"]; // theo getDay()
-const STATUS_LABEL = { present: "Có mặt", absent: "Vắng", excused: "Có phép", upcoming: "Sắp tới" };
-const LEVEL_LABEL = { safe: "An toàn", warning: "Cảnh báo", danger: "Nguy hiểm" };
-const SHIFT_PERIODS = { 1: "1–3", 2: "4–6", 3: "7–9", 4: "10–12" };
 const COURSE_MAP = new Map(COURSES.map((c) => [c.courseId, c]));
 
-const pad = (n) => String(n).padStart(2, "0");
-const toIso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-const addDays = (iso, n) => {
-  const d = new Date(`${iso}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + n);
-  return d.toISOString().slice(0, 10);
-};
-const dayName = (iso) => DAY_FULL[new Date(`${iso}T00:00:00Z`).getUTCDay()];
-const ddmm = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
-const pct = (rate) => `${(rate * 100).toFixed(1).replace(".", ",")}%`;
-// Chống chèn HTML khi đưa chuỗi người dùng nhập (họ tên...) vào innerHTML
-const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+/** Nhãn buổi của một buổi học: "Sáng" / "Chiều" / "Tối". */
+const partLabel = (s) => DAY_PARTS.find((p) => p.id === getDayPart(s)).label;
 
 /** Lời chào theo giờ trong ngày. */
 const greetingByHour = (hour) => (hour < 11 ? "Chào buổi sáng" : hour < 13 ? "Chào buổi trưa" : hour < 18 ? "Chào buổi chiều" : "Chào buổi tối");
+
+/** Lấy phần tử theo id; chưa có thì tạo mới và chèn ngay sau `afterEl`. */
+const ensureEl = (id, tag, className, afterEl) => {
+  let el = document.getElementById(id);
+  if (!el) {
+    el = document.createElement(tag);
+    el.id = id;
+    el.className = className;
+    afterEl.after(el);
+  }
+  return el;
+};
 
 // ---------- Các khối giao diện ----------
 
@@ -42,15 +35,20 @@ const sessionItemHtml = (s, withDate) => {
   const when = withDate ? `${dayName(s.date)} ${ddmm(s.date)} · ` : "";
   return `
     <li class="pf-session" style="--course-color:${esc(course.color)}">
-      <span class="pf-session__time">${when}Ca ${s.shift} · Tiết ${SHIFT_PERIODS[s.shift]}</span>
+      <span class="pf-session__time">${when}${partLabel(s)} · Tiết ${s.periodStart}–${s.periodEnd}</span>
       <span class="pf-session__name">${esc(course.courseName)}</span>
       <span class="pf-session__meta">Phòng ${esc(s.room)} · ${STATUS_LABEL[s.status]}</span>
     </li>`;
 };
 
+/** Vòng tròn tỷ lệ đi học (vẽ bằng conic-gradient trong CSS, --p = phần trăm). */
+const ringHtml = (rate, label) => `
+  <div class="pf-ring" style="--p:${(rate * 100).toFixed(1)}" role="img" aria-label="${esc(label)}">
+    <span class="pf-ring__value">${pct(rate)}</span>
+  </div>`;
+
 /** Một môn trong danh sách: progress bar % chuyên cần, nhãn mức, banner nếu danger. */
 const courseItemHtml = (st, settings) => {
-  const left = st.remaining;
   const banner = st.level === "danger" && settings.notifyEnabled
     ? `<div class="pf-banner" role="alert">
          <strong>Nguy cơ cấm thi!</strong> Bạn đã nghỉ ${st.absent + st.excused}/${st.total} buổi (${pct(st.absentRate)}),
@@ -70,7 +68,7 @@ const courseItemHtml = (st, settings) => {
       </div>
       <p class="pf-course__text">
         Chuyên cần <strong>${pct(st.attendRate)}</strong> (${st.attended}/${st.held} buổi) ·
-        Nghỉ ${st.absent + st.excused}/${st.total} · Còn được nghỉ <strong>${left}</strong> buổi
+        Nghỉ ${st.absent + st.excused}/${st.total} · Còn được nghỉ <strong>${st.remaining}</strong> buổi
       </p>
       ${banner}
     </li>`;
@@ -78,7 +76,7 @@ const courseItemHtml = (st, settings) => {
 
 // ---------- Dựng trang ----------
 const render = () => {
-  const today = toIso(new Date());
+  const today = todayIso();
   const sessions = loadSessions();
   const settings = loadSettings();
   const profile = loadProfile();
@@ -91,31 +89,32 @@ const render = () => {
   const upcoming = getUpcomingSessions(sessions, addDays(today, 1), 3);
 
   // 1) Lời chào
-  const main = document.querySelector(".ui-main");
-  let greetEl = document.getElementById("pf-greeting");
-  if (!greetEl) {
-    greetEl = document.createElement("p");
-    greetEl.id = "pf-greeting";
-    greetEl.className = "pf-greeting";
-    main.querySelector("h2").after(greetEl);
-  }
+  const heading = document.querySelector(".ui-main h2");
+  const greetEl = ensureEl("pf-greeting", "p", "pf-greeting", heading);
   greetEl.innerHTML = `${greetingByHour(new Date().getHours())}, <strong>${esc(profile.fullName)}</strong>!
-    <span class="pf-greeting__date">${dayName(today)}, ${ddmm(today)}/${today.slice(0, 4)}</span>`;
+    <span class="pf-greeting__date">${dayName(today)}, ${ddmmyyyy(today)}</span>`;
 
-  // 2) Widget (CSS Grid)
-  let widgetsEl = document.getElementById("pf-widgets");
-  if (!widgetsEl) {
-    widgetsEl = document.createElement("section");
-    widgetsEl.id = "pf-widgets";
-    widgetsEl.className = "pf-widgets";
-    widgetsEl.setAttribute("aria-label", "Tổng quan nhanh");
-    greetEl.after(widgetsEl);
-  }
+  // 2) Nhắc buổi chưa điểm danh (khung #alerts có sẵn trong index.html)
+  const alertsEl = document.getElementById("alerts");
+  const unmarked = overall.unmarked;
+  alertsEl.innerHTML = unmarked.length
+    ? `<div class="pf-notice" role="status">
+         <span>Bạn có <strong>${unmarked.length}</strong> buổi đã qua nhưng chưa điểm danh
+           (sớm nhất: ${dayName(unmarked[0].date)} ${ddmm(unmarked[0].date)}).</span>
+         <a class="ui-btn" href="schedule.html">Điểm danh ngay</a>
+       </div>`
+    : "";
+
+  // 3) Widget (CSS Grid), đặt sau khung nhắc nhở
+  const widgetsEl = ensureEl("pf-widgets", "section", "pf-widgets", alertsEl); // thứ tự: lời chào → nhắc nhở → widget
+  widgetsEl.setAttribute("aria-label", "Tổng quan nhanh");
   widgetsEl.innerHTML = `
-    <article class="pf-widget">
+    <article class="pf-widget pf-widget--rate">
       <h3 class="pf-widget__title">Tỷ lệ đi học chung</h3>
-      <p class="pf-widget__big">${pct(overall.attendRate)}</p>
-      <p class="pf-widget__sub">${overall.attended}/${overall.held} buổi đã diễn ra</p>
+      <div class="pf-widget__row">
+        ${ringHtml(overall.attendRate, `Tỷ lệ đi học chung ${pct(overall.attendRate)}`)}
+        <p class="pf-widget__sub">${overall.attended}/${overall.held} buổi<br>đã diễn ra</p>
+      </div>
     </article>
     <article class="pf-widget">
       <h3 class="pf-widget__title">Môn cần chú ý</h3>
@@ -138,7 +137,7 @@ const render = () => {
         : `<p class="pf-empty">Không còn buổi học nào sắp tới.</p>`}
     </article>`;
 
-  // 3) Danh sách môn (khung #course-cards có sẵn trong index.html).
+  // 4) Danh sách môn (khung #course-cards có sẵn trong index.html).
   //    Môn "danger" đưa lên đầu (thẻ chiếm cả hàng, có banner); các môn khác giữ thứ tự gốc.
   const orderedStats = [
     ...overall.courseStats.filter((st) => st.level === "danger"),

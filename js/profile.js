@@ -1,12 +1,16 @@
 // profile.js — Trang Hồ sơ & Cài đặt (profile.html).
 // Form HTML5 + kiểm tra bằng Regex (khi blur và khi submit), lưu qua storage.js.
-import "./nav.js"; // sidebar: bấm trang đang mở thì không tải lại
+import { setLeaveGuard } from "./nav.js"; // sidebar: không tải lại trang hiện tại; hỏi trước khi rời nếu chưa lưu
 import { showToast, confirmDialog } from "./ui.js"; // toast + hộp xác nhận của trang
 import {
   loadProfile, saveProfile,
   loadSettings, saveSettings,
+  loadSessions, saveSessions,
   resetAll,
 } from "./storage.js";
+import { COURSES } from "./data.js";
+import { validateBackup, createBackup } from "./logic.js";
+import { esc, todayIso } from "./utils.js";
 
 // ---------- Quy tắc kiểm tra ----------
 // Mỗi trường: regex + thông báo lỗi tiếng Việt
@@ -39,8 +43,6 @@ const validateValue = (name, value) => {
   return RULES[name].regex.test(v) ? "" : RULES[name].message;
 };
 
-// Chống chèn HTML khi in dữ liệu người dùng vào innerHTML
-const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 // ---------- Dựng giao diện ----------
 const formHost = document.getElementById("profile-form");
@@ -74,22 +76,35 @@ formHost.innerHTML = `
           Giới hạn nghỉ tối đa: <output id="pf-limit-out" for="pf-limit">20%</output>
         </label>
         <input class="pf-range" id="pf-limit" name="limit" type="range" min="10" max="30" step="1" value="20">
-        <p class="pf-hint">Nghỉ vượt mức này thì môn chuyển sang "Nguy hiểm". Mức "Cảnh báo" tự tính bằng 75% giới hạn (20% → 15%).</p>
+        <p class="pf-hint">Nghỉ vượt mức này thì môn chuyển sang "Nguy hiểm". Mức "Cảnh báo" tự tính bằng 75% giới hạn (<span id="pf-warn-out">20% → 15%</span>).</p>
       </div>
       <label class="pf-check">
         <input type="checkbox" id="pf-notify" name="notifyEnabled"> Bật thông báo nhắc nhở chuyên cần
       </label>
     </fieldset>
 
-    <div class="pf-actions">
+    <div class="pf-actions" id="pf-actions">
       <button type="submit" class="ui-btn ui-btn--primary pf-save" id="pf-save">Lưu thay đổi</button>
+      <p class="pf-unsaved" id="pf-unsaved" role="status" hidden>
+        <span class="pf-unsaved__text">⚠ Bạn có thay đổi chưa được lưu.</span>
+        <button type="button" class="ui-btn" id="pf-discard">Hủy thay đổi</button>
+      </p>
       <p class="pf-status" id="pf-status" role="status"></p>
     </div>
   </form>`;
 
 resetHost.innerHTML = `
+  <div class="pf-data-zone">
+    <h3>Sao lưu dữ liệu</h3>
+    <p>Xuất hồ sơ, cài đặt và toàn bộ điểm danh ra file JSON để lưu trữ hoặc chuyển sang máy khác.</p>
+    <div class="pf-data-actions">
+      <button type="button" class="ui-btn" id="pf-export">Xuất file JSON</button>
+      <button type="button" class="ui-btn" id="pf-import">Nhập file JSON</button>
+      <input type="file" id="pf-import-file" accept="application/json,.json" hidden>
+    </div>
+  </div>
   <div class="pf-danger-zone">
-    <h3>Dữ liệu</h3>
+    <h3>Dữ liệu mẫu</h3>
     <p>Đưa hồ sơ, cài đặt và toàn bộ điểm danh về dữ liệu mẫu ban đầu.</p>
     <button type="button" class="ui-btn pf-reset" id="pf-reset">Khôi phục dữ liệu mẫu</button>
   </div>`;
@@ -103,6 +118,42 @@ const limitInput = document.getElementById("pf-limit");
 const limitOut = document.getElementById("pf-limit-out");
 const notifyInput = document.getElementById("pf-notify");
 const inputOf = (name) => document.getElementById(`pf-${name}`);
+const actionsEl = document.getElementById("pf-actions");
+const unsavedEl = document.getElementById("pf-unsaved");
+
+/** Hiện giá trị thanh giới hạn và mức "Cảnh báo" tương ứng (= 75%, cùng công thức lúc lưu). */
+const showLimit = (value) => {
+  const limit = Number(value);
+  limitOut.textContent = `${limit}%`;
+  document.getElementById("pf-warn-out").textContent = `${limit}% → ${Math.round(limit * 0.75)}%`;
+};
+
+// ---------- Theo dõi thay đổi chưa lưu ----------
+
+/** Chụp giá trị hiện tại của form thành 1 chuỗi để so sánh nhanh. */
+const formSnapshot = () => JSON.stringify([
+  ...FIELDS.map((name) => inputOf(name).value.trim()),
+  limitInput.value,
+  notifyInput.checked,
+]);
+
+let savedSnapshot = ""; // giá trị form ngay sau lần nạp / lưu gần nhất
+
+/** Form có khác dữ liệu đã lưu không? (sửa rồi gõ lại như cũ thì coi như không đổi) */
+const isDirty = () => formSnapshot() !== savedSnapshot;
+
+/** Hiện / ẩn cảnh báo "chưa lưu"; khi có thay đổi thì thanh nút Lưu dính ở đáy màn hình. */
+const updateUnsavedNotice = () => {
+  const dirty = isDirty();
+  unsavedEl.hidden = !dirty;
+  actionsEl.classList.toggle("pf-actions--dirty", dirty);
+};
+
+/** Ghi nhận trạng thái hiện tại của form là "đã lưu". */
+const markSaved = () => {
+  savedSnapshot = formSnapshot();
+  updateUnsavedNotice();
+};
 
 // ---------- Hiển thị / kiểm tra ----------
 
@@ -144,10 +195,11 @@ const fillForm = () => {
     }
   });
   limitInput.value = Math.round(settings.absenceLimit * 100);
-  limitOut.textContent = `${limitInput.value}%`;
+  showLimit(limitInput.value);
   notifyInput.checked = Boolean(settings.notifyEnabled);
   renderSummary(profile);
   updateSaveButton();
+  markSaved();
 };
 
 // ---------- Xử lý sự kiện ----------
@@ -162,9 +214,10 @@ const handleBlur = (event) => {
 const handleInput = (event) => {
   const { name } = event.target;
   if (FIELDS.includes(name) && validateValue(name, event.target.value) === "") showFieldError(name);
-  if (name === "limit") limitOut.textContent = `${event.target.value}%`;
+  if (name === "limit") showLimit(event.target.value);
   statusEl.textContent = "";
   updateSaveButton();
+  updateUnsavedNotice();
 };
 
 /** Bấm Lưu (hoặc Enter): kiểm tra lại toàn bộ; hợp lệ thì lưu vào storage. */
@@ -189,7 +242,15 @@ const handleSubmit = (event) => {
   });
 
   renderSummary(profile);
+  markSaved();
   statusEl.textContent = "Đã lưu thay đổi.";
+};
+
+/** Bấm "Hủy thay đổi": đưa form về dữ liệu đã lưu. */
+const handleDiscard = () => {
+  fillForm();
+  statusEl.textContent = "";
+  showToast("safe", "Đã hủy các thay đổi chưa lưu");
 };
 
 /** Khôi phục dữ liệu mẫu: hỏi xác nhận bằng hộp thoại của trang (không dùng confirm() của trình duyệt). */
@@ -208,11 +269,72 @@ const handleReset = async () => {
   showToast("safe", "Đã khôi phục dữ liệu mẫu", "Hồ sơ, cài đặt và điểm danh đã về ban đầu.");
 };
 
+/** Xuất dữ liệu: tạo file JSON từ dữ liệu ĐÃ LƯU rồi cho trình duyệt tải về. */
+const handleExport = () => {
+  const backup = createBackup(loadSessions(), loadProfile(), loadSettings(), new Date().toISOString());
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `lhu-chuyen-can-${todayIso()}.json`;
+  link.click();
+  // Giải phóng bộ nhớ của file tạm; đợi 1 nhịp để trình duyệt kịp bắt đầu tải (thu hồi ngay có thể làm hỏng lượt tải)
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+  showToast("safe", "Đã xuất dữ liệu", `File ${link.download} đã được tải về.`);
+};
+
+/** Bấm "Nhập file JSON": mở hộp chọn file (input file ẩn). */
+const handleImportClick = () => document.getElementById("pf-import-file").click();
+
+/**
+ * Đã chọn file: đọc → JSON.parse → kiểm tra bằng validateBackup() (logic.js)
+ * → hỏi xác nhận → ghi đè dữ liệu. File lỗi thì báo lý do cụ thể, không ghi gì.
+ */
+const handleImportFile = async (event) => {
+  const file = event.target.files[0];
+  event.target.value = ""; // cho phép chọn lại cùng file lần sau
+  if (!file) return;
+
+  let data;
+  try {
+    data = JSON.parse(await file.text());
+  } catch {
+    showToast("danger", "Không đọc được file", "File không đúng định dạng JSON.");
+    return;
+  }
+
+  const result = validateBackup(data, COURSES);
+  if (!result.ok) {
+    showToast("danger", "File sao lưu không hợp lệ", result.errors.join(" "));
+    return;
+  }
+
+  const ok = await confirmDialog({
+    title: "Nhập dữ liệu từ file?",
+    message: `File có ${result.value.sessions.length} buổi học. Dữ liệu hiện tại (hồ sơ, cài đặt, điểm danh) sẽ bị thay thế.`,
+    confirmText: "Nhập dữ liệu",
+    cancelText: "Hủy",
+    danger: true,
+  });
+  if (!ok) return;
+
+  saveSessions(result.value.sessions);
+  if (result.value.profile) saveProfile(result.value.profile);
+  if (result.value.settings) saveSettings(result.value.settings);
+  fillForm();
+  statusEl.textContent = "";
+  showToast("safe", "Đã nhập dữ liệu", `${result.value.sessions.length} buổi học đã được khôi phục từ file.`);
+};
+
 // ---------- Gắn sự kiện ----------
 form.addEventListener("blur", handleBlur, true); // blur không nổi bọt nên dùng pha capture để ủy quyền
 form.addEventListener("input", handleInput);
 form.addEventListener("submit", handleSubmit);
 document.getElementById("pf-reset").addEventListener("click", handleReset);
+document.getElementById("pf-discard").addEventListener("click", handleDiscard);
+document.getElementById("pf-export").addEventListener("click", handleExport);
+document.getElementById("pf-import").addEventListener("click", handleImportClick);
+document.getElementById("pf-import-file").addEventListener("change", handleImportFile);
+setLeaveGuard(isDirty); // menu hỏi trước khi rời trang nếu còn thay đổi chưa lưu
 
 // ---------- Khởi động ----------
 fillForm();

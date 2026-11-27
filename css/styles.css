@@ -49,6 +49,8 @@
   --ui-sidebar-width: 220px;
   --ui-bottombar-height: 64px;
   --ui-header-height: 64px;      /* header cố định chiều cao để toast/cuộn tính được vị trí */
+  --ui-footer-height: 40px;      /* footer cố định chiều cao */
+  --ui-bottom-offset: var(--ui-footer-height); /* phần đáy màn hình bị che (footer, + thanh dưới trên mobile) */
 }
 
 /* ---------- 2. NỀN TẢNG ----------
@@ -102,7 +104,11 @@ body.ui-page {
   position: sticky;
   bottom: 0;
   z-index: 800;                  /* trên nội dung, dưới thanh điều hướng mobile (900) và toast (1000) */
-  padding: var(--ui-space-2) var(--ui-space-5);
+  display: flex;                 /* canh giữa chữ theo chiều dọc trong chiều cao cố định */
+  align-items: center;
+  justify-content: center;
+  height: var(--ui-footer-height);
+  padding: 0 var(--ui-space-5);
   font-size: 0.85rem;
   text-align: center;
   color: var(--ui-text-muted);
@@ -299,7 +305,11 @@ body.ui-page {
     border-radius: 0;
   }
 
-  :root { --ui-header-height: 56px; }
+  :root {
+    --ui-header-height: 56px;
+    --ui-footer-height: 28px;
+    --ui-bottom-offset: calc(var(--ui-footer-height) + var(--ui-bottombar-height));
+  }
   .ui-header { padding: 0 var(--ui-space-4); }
   .ui-header__logo { height: 32px; }
   .ui-header__title { font-size: 1.05rem; }   /* vừa 1 dòng ở màn 375px */
@@ -309,7 +319,7 @@ body.ui-page {
   .ui-footer {
     bottom: var(--ui-bottombar-height);   /* dính ngay trên thanh điều hướng dưới */
     margin-bottom: var(--ui-bottombar-height);
-    padding: var(--ui-space-1) var(--ui-space-3);
+    padding: 0 var(--ui-space-3);
     font-size: 0.75rem;
   }
 }
