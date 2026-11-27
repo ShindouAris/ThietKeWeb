@@ -1,6 +1,19 @@
-# Nhật ký Prompt
+# Phụ lục 2 - Nhật ký đồng hành cùng AI 
+## PHỤ LỤC 2 
+### NHẬT KÝ ĐỒNG HÀNH CÙNG AI (PROMPT LOG) 
+Học phần: Thiết kế Web – Trường Đại học Lạc Hồng (LHU) <br/>
 
-Ghi lại các prompt đã dùng với Claude Code trong dự án (nguyên văn, xuống dòng thể hiện bằng `<br>`).
+Tên nhóm: Nhóm 3
+
+Lớp: 25CT113
+
+Tên dự án: Phân hệ quản lý thời khoá biểu và chuyên cần
+
+# 1. Thông tin công cụ AI sử dụng 
+● Công cụ chính: Claude Sonnet 5.5, Claude Opus 5.5
+
+● Công cụ hỗ trợ code (Extension): Claude Code
+# 2. Nhật ký quá trình thực hiện
 
 | Giai đoạn | Mục tiêu | Prompt | Kết quả & chỉnh sửa |
 |---|---|---|---|
