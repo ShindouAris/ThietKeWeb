@@ -158,6 +158,43 @@
     check("upcoming → present", L.nextStatus("upcoming"), "present");
     check("Giá trị lạ → present", L.nextStatus("xyz"), "present");
 
+    // ---------- Buổi chưa điểm danh ----------
+    group("canMark / getDisplayStatus / getUnmarkedSessions");
+    check("Buổi hôm nay: được điểm danh", L.canMark(sess("A", TODAY, "upcoming"), TODAY), true);
+    check("Buổi ngày mai: chưa được điểm danh", L.canMark(sess("A", "2026-11-28", "upcoming"), TODAY), false);
+    check("Buổi đã qua dù còn 'upcoming': được điểm danh", L.canMark(sess("A", "2026-11-20", "upcoming"), TODAY), true);
+    check("canMark nhận đối tượng Date", L.canMark(sess("A", "2026-11-27", "upcoming"), new Date(2026, 10, 27)), true);
+    check("Đã qua + upcoming → hiển thị 'unmarked'", L.getDisplayStatus(sess("A", "2026-11-20", "upcoming"), TODAY), "unmarked");
+    check("Hôm nay + upcoming → vẫn 'upcoming' (có thể chưa tới giờ)", L.getDisplayStatus(sess("A", TODAY, "upcoming"), TODAY), "upcoming");
+    check("Đã điểm danh giữ nguyên trạng thái", L.getDisplayStatus(sess("A", "2026-11-20", "absent"), TODAY), "absent");
+    check("Dữ liệu mẫu hôm nay: không có buổi chưa điểm danh", L.getUnmarkedSessions(SESSIONS, TODAY), []);
+    check("Ba ngày sau (30/11 → 02/12 đã qua): 3 buổi chưa điểm danh", L.getUnmarkedSessions(SESSIONS, "2026-12-03").map((x) => x.sessionId), ["CTDL-13", "OOP-13", "CSDL-13"]);
+    check("Sau học kỳ: 15 buổi chưa điểm danh", L.getUnmarkedSessions(SESSIONS, "2027-01-01").length, 15);
+    check("getOverallStats có trường unmarked", L.getOverallStats(SESSIONS, COURSES, SETTINGS, "2026-12-03").unmarked.length, 3);
+
+    // ---------- Sao lưu JSON ----------
+    group("createBackup / validateBackup");
+    const PROFILE = { studentId: "12500888", fullName: "Nguyễn Văn An", email: "an@lhu.edu.vn", phone: "0901234567", className: "25DH-CNTT1" };
+    const backup = L.createBackup(SESSIONS, PROFILE, SETTINGS, "2026-11-27T08:00:00.000Z");
+    const roundTrip = JSON.parse(JSON.stringify(backup));
+    check("Xuất rồi nhập lại (qua JSON) → hợp lệ", L.validateBackup(roundTrip, COURSES).ok, true);
+    check("Nhập lại giữ đủ 75 buổi", L.validateBackup(roundTrip, COURSES).value.sessions.length, 75);
+    check("Không phải đối tượng → lỗi", L.validateBackup([1, 2], COURSES).ok, false);
+    check("null → lỗi, không văng exception", L.validateBackup(null, COURSES).ok, false);
+    check("Thiếu dấu hiệu ứng dụng → lỗi", L.validateBackup({ sessions: SESSIONS }, COURSES).errors[0], "File không phải bản sao lưu của LHU Attendance Tracker.");
+    check("Danh sách buổi rỗng → lỗi", L.validateBackup({ ...roundTrip, sessions: [] }, COURSES).ok, false);
+    const bad = (patch) => L.validateBackup({ ...roundTrip, sessions: [{ ...roundTrip.sessions[0], ...patch }] }, COURSES);
+    check("Ngày không tồn tại (30/02) → lỗi", bad({ date: "2026-02-30" }).errors[0], 'Buổi thứ 1: ngày "2026-02-30" không hợp lệ (cần YYYY-MM-DD).');
+    check("Môn không có trong danh sách → lỗi", bad({ courseId: "XYZ" }).ok, false);
+    check("Ca 5 → lỗi", bad({ shift: 5 }).ok, false);
+    check("Trạng thái lạ → lỗi", bad({ status: "late" }).ok, false);
+    check("Tiết kết thúc < tiết bắt đầu → lỗi", bad({ periodStart: 4, periodEnd: 2 }).ok, false);
+    check("Trùng sessionId → lỗi", L.validateBackup({ ...roundTrip, sessions: [roundTrip.sessions[0], roundTrip.sessions[0]] }, COURSES).errors[0].startsWith("Trùng mã buổi học"), true);
+    check("Cài đặt warningAt > absenceLimit → lỗi", L.validateBackup({ ...roundTrip, settings: { absenceLimit: 0.1, warningAt: 0.2, notifyEnabled: true } }, COURSES).ok, false);
+    check("Hồ sơ thiếu trường → lỗi", L.validateBackup({ ...roundTrip, profile: { fullName: "A" } }, COURSES).ok, false);
+    check("Không có hồ sơ/cài đặt (chỉ buổi học) → vẫn hợp lệ", L.validateBackup({ app: "lhu-attendance", version: 1, sessions: SESSIONS }, COURSES).ok, true);
+    check("Nhiều lỗi → báo tối đa 5 dòng", L.validateBackup({ ...roundTrip, sessions: roundTrip.sessions.map((x) => ({ ...x, shift: 9 })) }, COURSES).errors.length, 5);
+
     // ---------- Tổng kết ----------
     const summary = document.getElementById("summary");
     summary.textContent = failed === 0 ? `✔ Tất cả ${passed} ca đều đạt` : `✘ ${failed} ca lỗi / ${passed + failed} ca`;

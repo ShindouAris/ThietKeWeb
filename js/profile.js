@@ -5,8 +5,12 @@ import { showToast, confirmDialog } from "./ui.js"; // toast + hộp xác nhận
 import {
   loadProfile, saveProfile,
   loadSettings, saveSettings,
+  loadSessions, saveSessions,
   resetAll,
 } from "./storage.js";
+import { COURSES } from "./data.js";
+import { validateBackup, createBackup } from "./logic.js";
+import { esc, todayIso } from "./utils.js";
 
 // ---------- Quy tắc kiểm tra ----------
 // Mỗi trường: regex + thông báo lỗi tiếng Việt
@@ -39,8 +43,6 @@ const validateValue = (name, value) => {
   return RULES[name].regex.test(v) ? "" : RULES[name].message;
 };
 
-// Chống chèn HTML khi in dữ liệu người dùng vào innerHTML
-const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 // ---------- Dựng giao diện ----------
 const formHost = document.getElementById("profile-form");
@@ -92,8 +94,17 @@ formHost.innerHTML = `
   </form>`;
 
 resetHost.innerHTML = `
+  <div class="pf-data-zone">
+    <h3>Sao lưu dữ liệu</h3>
+    <p>Xuất hồ sơ, cài đặt và toàn bộ điểm danh ra file JSON để lưu trữ hoặc chuyển sang máy khác.</p>
+    <div class="pf-data-actions">
+      <button type="button" class="ui-btn" id="pf-export">Xuất file JSON</button>
+      <button type="button" class="ui-btn" id="pf-import">Nhập file JSON</button>
+      <input type="file" id="pf-import-file" accept="application/json,.json" hidden>
+    </div>
+  </div>
   <div class="pf-danger-zone">
-    <h3>Dữ liệu</h3>
+    <h3>Dữ liệu mẫu</h3>
     <p>Đưa hồ sơ, cài đặt và toàn bộ điểm danh về dữ liệu mẫu ban đầu.</p>
     <button type="button" class="ui-btn pf-reset" id="pf-reset">Khôi phục dữ liệu mẫu</button>
   </div>`;
@@ -258,12 +269,71 @@ const handleReset = async () => {
   showToast("safe", "Đã khôi phục dữ liệu mẫu", "Hồ sơ, cài đặt và điểm danh đã về ban đầu.");
 };
 
+/** Xuất dữ liệu: tạo file JSON từ dữ liệu ĐÃ LƯU rồi cho trình duyệt tải về. */
+const handleExport = () => {
+  const backup = createBackup(loadSessions(), loadProfile(), loadSettings(), new Date().toISOString());
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `lhu-chuyen-can-${todayIso()}.json`;
+  link.click();
+  // Giải phóng bộ nhớ của file tạm; đợi 1 nhịp để trình duyệt kịp bắt đầu tải (thu hồi ngay có thể làm hỏng lượt tải)
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+  showToast("safe", "Đã xuất dữ liệu", `File ${link.download} đã được tải về.`);
+};
+
+/** Bấm "Nhập file JSON": mở hộp chọn file (input file ẩn). */
+const handleImportClick = () => document.getElementById("pf-import-file").click();
+
+/**
+ * Đã chọn file: đọc → JSON.parse → kiểm tra bằng validateBackup() (logic.js)
+ * → hỏi xác nhận → ghi đè dữ liệu. File lỗi thì báo lý do cụ thể, không ghi gì.
+ */
+const handleImportFile = async (event) => {
+  const file = event.target.files[0];
+  event.target.value = ""; // cho phép chọn lại cùng file lần sau
+  if (!file) return;
+
+  let data;
+  try {
+    data = JSON.parse(await file.text());
+  } catch {
+    showToast("danger", "Không đọc được file", "File không đúng định dạng JSON.");
+    return;
+  }
+
+  const result = validateBackup(data, COURSES);
+  if (!result.ok) {
+    showToast("danger", "File sao lưu không hợp lệ", result.errors.join(" "));
+    return;
+  }
+
+  const ok = await confirmDialog({
+    title: "Nhập dữ liệu từ file?",
+    message: `File có ${result.value.sessions.length} buổi học. Dữ liệu hiện tại (hồ sơ, cài đặt, điểm danh) sẽ bị thay thế.`,
+    confirmText: "Nhập dữ liệu",
+    cancelText: "Hủy",
+    danger: true,
+  });
+  if (!ok) return;
+
+  saveSessions(result.value.sessions);
+  if (result.value.profile) saveProfile(result.value.profile);
+  if (result.value.settings) saveSettings(result.value.settings);
+  fillForm();
+  statusEl.textContent = "";
+  showToast("safe", "Đã nhập dữ liệu", `${result.value.sessions.length} buổi học đã được khôi phục từ file.`);
+};
+
 // ---------- Gắn sự kiện ----------
 form.addEventListener("blur", handleBlur, true); // blur không nổi bọt nên dùng pha capture để ủy quyền
 form.addEventListener("input", handleInput);
 form.addEventListener("submit", handleSubmit);
 document.getElementById("pf-reset").addEventListener("click", handleReset);
 document.getElementById("pf-discard").addEventListener("click", handleDiscard);
+document.getElementById("pf-export").addEventListener("click", handleExport);
+document.getElementById("pf-import").addEventListener("click", handleImportClick);
+document.getElementById("pf-import-file").addEventListener("change", handleImportFile);
 setLeaveGuard(isDirty); // menu hỏi trước khi rời trang nếu còn thay đổi chưa lưu
 
 // ---------- Khởi động ----------

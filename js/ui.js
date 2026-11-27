@@ -6,8 +6,7 @@
 const TOAST_MS = 5000;     // toast tự ẩn sau 5 giây
 const TOAST_HIDE_MS = 250; // khớp với transition của .ui-toast--hide
 
-// Chống chèn HTML khi đưa chuỗi vào innerHTML
-const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+import { esc } from "./utils.js"; // chống chèn HTML khi đưa chuỗi vào innerHTML
 
 // ======================================================================
 // TOAST

@@ -132,13 +132,151 @@
   border-radius: 999px;
 }
 
-/* 4 trạng thái: mỗi class chỉ đặt 2 biến, phần còn lại dùng chung */
+/* Trạng thái: mỗi class chỉ đặt 2 biến, phần còn lại dùng chung.
+   "unmarked" không lưu trong dữ liệu: là buổi "upcoming" đã qua ngày mà chưa điểm danh (logic.js). */
 .ui-session--present  { --status-bg: var(--ui-present-bg);  --status-fg: var(--ui-present); }
 .ui-session--absent   { --status-bg: var(--ui-absent-bg);   --status-fg: var(--ui-absent); }
 .ui-session--excused  { --status-bg: var(--ui-excused-bg);  --status-fg: var(--ui-excused); }
 .ui-session--upcoming { --status-bg: var(--ui-upcoming-bg); --status-fg: var(--ui-upcoming); }
+.ui-session--unmarked {
+  --status-bg: var(--ui-warning-bg);
+  --status-fg: var(--ui-warning);
+  outline: 2px dashed var(--ui-warning);   /* viền nét đứt: "còn việc phải làm" */
+  outline-offset: -2px;
+}
+.ui-session--unmarked:focus-visible { outline: 3px solid var(--ui-focus); outline-offset: 2px; }
 
-/* ---------- 4. ANIMATION CHUYỂN TUẦN ----------
+/* Biểu tượng trước nhãn trạng thái: không chỉ dựa vào màu (người mù màu vẫn phân biệt được).
+   Cú pháp content: "✓" / "" — phần sau dấu / là chữ cho trình đọc màn hình (để trống = bỏ qua ký hiệu). */
+.ui-session__status::before { margin-right: 3px; }
+.ui-session--present  .ui-session__status::before { content: "✓" / ""; }
+.ui-session--absent   .ui-session__status::before { content: "✕" / ""; }
+.ui-session--excused  .ui-session__status::before { content: "✉" / ""; }
+.ui-session--upcoming .ui-session__status::before { content: "◷" / ""; }
+.ui-session--unmarked .ui-session__status::before { content: "?" / ""; }
+.ui-legend__item--unmarked { --dot: var(--ui-warning); }
+
+/* ---------- 4. THANH CÔNG CỤ, LỜI NHẮC, THÔNG BÁO TRỐNG ---------- */
+.att-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-3);
+  margin-bottom: var(--ui-space-4);
+}
+.att-select {
+  padding: var(--ui-space-2);
+  font: inherit;
+  border: 1px solid var(--ui-border-strong);
+  border-radius: var(--ui-radius-sm);
+}
+
+/* Lời nhắc "có N buổi chưa điểm danh" (JS ẩn khi không còn buổi nào) */
+.att-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-2) var(--ui-space-3);
+  margin-bottom: var(--ui-space-4);
+  padding: var(--ui-space-2) var(--ui-space-3);
+  color: var(--ui-warning);
+  background: var(--ui-warning-bg);
+  border-left: 4px solid var(--ui-warning);
+  border-radius: var(--ui-radius-sm);
+}
+.att-notice[hidden] { display: none; }
+.att-notice__text { flex: 1 1 240px; }
+.att-notice .ui-btn { padding: var(--ui-space-1) var(--ui-space-3); }
+
+.att-empty {
+  margin: var(--ui-space-3) 0 0;
+  padding: var(--ui-space-4);
+  text-align: center;
+  color: var(--ui-text-muted);
+  background: var(--ui-surface);
+  border: 1px dashed var(--ui-border-strong);
+  border-radius: var(--ui-radius);
+}
+.att-empty[hidden] { display: none; }
+
+/* ---------- 5. LƯỚI THÁNG ---------- */
+.att-month {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  overflow: hidden;
+  background: var(--ui-border);
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius);
+}
+.att-month[hidden] { display: none; }
+.att-month__head {
+  padding: var(--ui-space-2);
+  font-weight: 700;
+  text-align: center;
+  color: var(--ui-primary-dark);
+  background: var(--ui-primary-light);
+}
+.att-month__day {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-1);
+  min-height: 72px;
+  padding: var(--ui-space-2);
+  font: inherit;
+  text-align: left;
+  background: var(--ui-surface);
+  border: 0;
+  cursor: pointer;
+}
+.att-month__day:hover { background: #f6faff; }
+.att-month__day--blank { cursor: default; background: var(--ui-bg); }
+.att-month__day--today .att-month__num {
+  align-self: flex-start;
+  padding: 0 6px;
+  color: #fff;
+  background: var(--ui-primary);
+  border-radius: 999px;
+}
+.att-dots { display: flex; flex-wrap: wrap; gap: 4px; }
+.att-dot { width: 12px; height: 12px; background: var(--dot); border-radius: 50%; }
+.att-dot--present  { --dot: var(--ui-present); }
+.att-dot--absent   { --dot: var(--ui-absent); }
+.att-dot--excused  { --dot: var(--ui-excused); }
+.att-dot--upcoming { --dot: var(--ui-upcoming); }
+.att-dot--unmarked { --dot: var(--ui-surface); box-shadow: inset 0 0 0 2px var(--ui-warning); } /* chấm rỗng */
+
+/* ---------- 6. BẢNG THỐNG KÊ ---------- */
+.att-stats { margin-top: var(--ui-space-5); }
+.att-stats__list { display: flex; flex-direction: column; gap: var(--ui-space-3); margin: 0; padding: 0; list-style: none; }
+.att-stat {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-2) var(--ui-space-4);
+  padding: var(--ui-space-3);
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-border);
+  border-left: 4px solid var(--course-color);
+  border-radius: var(--ui-radius);
+}
+.att-stat__name { flex: 1 1 200px; font-weight: 700; }
+.att-stat__rate { flex: 1 1 200px; }
+.att-bar { height: 10px; overflow: hidden; background: var(--ui-upcoming-bg); border-radius: 999px; }
+.att-bar__fill { height: 100%; background: var(--course-color); transition: width 300ms; }
+.att-stat__text { margin: 2px 0 0; font-size: 0.85rem; color: var(--ui-text-muted); }
+.att-stat__left { flex: 1 1 160px; font-size: 0.9rem; }
+.att-badge { padding: 2px var(--ui-space-3); font-size: 0.8rem; font-weight: 700; color: #fff; background: var(--lv); border-radius: 999px; }
+.att-badge--safe    { --lv: var(--ui-safe); }
+.att-badge--warning { --lv: var(--ui-warning); }
+.att-badge--danger  { --lv: var(--ui-danger); }
+/* Desktop: chia cột cố định để các thanh % thẳng hàng giữa các môn */
+@media (min-width: 1024px) {
+  .att-stat { display: grid; grid-template-columns: minmax(180px, 1.2fr) 2fr minmax(150px, auto) 96px; }
+  .att-badge { justify-self: end; }
+}
+
+/* ---------- 7. ANIMATION CHUYỂN TUẦN ----------
    JS thêm class vào vùng lưới sau khi vẽ tuần mới, hết 300ms thì gỡ ra.
    .ui-slide-left : tuần mới trượt vào từ bên trái  (bấm "Tuần trước")
    .ui-slide-right: tuần mới trượt vào từ bên phải  (bấm "Tuần sau") */
@@ -160,26 +298,25 @@
   .ui-slide-right { animation: none; }
   .ui-session { transition: none; }
   .ui-session:hover { transform: none; }
+  .att-bar__fill { transition: none; }
 }
 
-/* ---------- 5. MOBILE (< 768px): DANH SÁCH THEO NGÀY ----------
-   Cùng một HTML, chỉ đổi CSS: bỏ Grid, dùng Flexbox dọc.
+/* ---------- 8. MÀN HÌNH < 1024px: DANH SÁCH THEO NGÀY ----------
+   Lưới 7 cột cần ~740px nên dưới 1024px (có sidebar) không đủ chỗ: chuyển sang danh sách
+   thay vì bắt người dùng cuộn ngang. Cùng một HTML, chỉ đổi CSS:
    - Ẩn góc, tiêu đề ngày, tên ca (không còn bảng nên không cần).
    - Mỗi ô là một "mục danh sách"; nhãn ngày + ca lấy từ data-label bằng ::before.
    - order = ngày*10 + ca (biến --day, --shift gắn ở HTML) -> sắp theo ngày rồi theo ca.
-   - Ô không có buổi học thì ẩn (:not(:has(...))). */
-@media (max-width: 767px) {
-  /* Thanh điều hướng tuần: tiêu đề một hàng riêng ở trên, 3 nút chia đều hàng dưới */
-  .ui-week-controls { gap: var(--ui-space-2); }
-  .ui-week-controls__title { flex: 1 0 100%; order: -1; }
-  .ui-week-controls .ui-btn { flex: 1 1 auto; padding-inline: var(--ui-space-2); white-space: nowrap; }
-
+   - Ô không có buổi học thì ẩn (:not(:has(...))).
+   Tablet (768–1023px) xếp 2 cột, mobile (< 768px) 1 cột. */
+@media (max-width: 1023px) {
   .ui-week-scroll { overflow-x: visible; }
 
   .ui-week {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+    grid-template-rows: none;
+    align-items: start;
     gap: var(--ui-space-3);
     background: none;
     border: 0;
@@ -199,6 +336,7 @@
   .ui-week__cell:not(:has(.ui-session)) { display: none; }
   .ui-week__cell::before {
     display: block;
+    margin-bottom: var(--ui-space-1);
     content: attr(data-label);
     font-size: 0.85rem;
     font-weight: 700;
@@ -206,4 +344,12 @@
   }
 
   .ui-session { font-size: 0.9rem; }
+}
+
+/* ---------- 9. < 1024px: thanh điều hướng tuần ----------
+   Không đủ chỗ cho 1 hàng: tiêu đề tuần lên hàng riêng, 3 nút chia đều hàng dưới. */
+@media (max-width: 1023px) {
+  .ui-week-controls { gap: var(--ui-space-2); }
+  .ui-week-controls__title { flex: 1 0 100%; order: -1; }
+  .ui-week-controls .ui-btn { flex: 1 1 auto; padding-inline: var(--ui-space-2); white-space: nowrap; }
 }

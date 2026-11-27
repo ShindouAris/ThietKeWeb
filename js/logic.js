@@ -2,23 +2,11 @@
 // Dữ liệu vào qua tham số, kết quả trả ra bằng return -> dễ kiểm thử, dễ giải thích.
 // Quy ước ngày: chuỗi "YYYY-MM-DD" (so sánh chuỗi theo thứ tự chữ cái = so sánh ngày).
 
+import { toIso, addDays, isValidIsoDate } from "./utils.js"; // hàm ngày dùng chung (cũng là hàm thuần)
+
 const EPS = 1e-9; // sai số nhỏ khi so sánh số thực (VD 3/15 so với 0.2)
 
 // ---------- Hàm phụ (không export) ----------
-
-/** Đổi Date hoặc chuỗi "YYYY-MM-DD" thành chuỗi "YYYY-MM-DD". Date dùng giờ địa phương. */
-const toIso = (date) => {
-  if (typeof date === "string") return date.slice(0, 10);
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-};
-
-/** Cộng n ngày vào chuỗi ngày. Dùng UTC nên không lệch múi giờ, tự qua tháng/năm đúng. */
-const addDays = (iso, n) => {
-  const d = new Date(`${iso}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + n);
-  return d.toISOString().slice(0, 10);
-};
 
 /** Chia an toàn: mẫu = 0 thì trả 0 (không chia cho 0). */
 const safeRate = (part, whole) => (whole > 0 ? part / whole : 0);
@@ -220,6 +208,7 @@ export const getOverallStats = (sessions, courses, settings, today) => {
     worstCourse,
     courseStats,
     upcoming: getUpcomingSessions(sessions, today),
+    unmarked: getUnmarkedSessions(sessions, today),
   };
 };
 
@@ -235,3 +224,111 @@ const STATUS_CYCLE = { present: "absent", absent: "excused", excused: "present" 
  * @returns {"present"|"absent"|"excused"}
  */
 export const nextStatus = (status) => STATUS_CYCLE[status] ?? "present";
+
+/**
+ * Buổi học đã tới ngày chưa (được phép điểm danh)? So theo NGÀY, không theo status:
+ * dữ liệu lưu từ trước vẫn để "upcoming" dù ngày học đã qua, nếu so theo status thì
+ * những buổi đó sẽ không bao giờ điểm danh được.
+ * @param {{date: string}} session Buổi học.
+ * @param {string|Date} today Ngày hiện tại.
+ * @returns {boolean} true nếu ngày học <= hôm nay.
+ */
+export const canMark = (session, today) => session.date <= toIso(today);
+
+/**
+ * Trạng thái để HIỂN THỊ: giống status, riêng buổi "upcoming" đã qua ngày thì là "unmarked"
+ * (chưa điểm danh). Không đổi dữ liệu gốc; quy tắc tính tỷ lệ trong CLAUDE.md giữ nguyên.
+ * @param {{date: string, status: string}} session Buổi học.
+ * @param {string|Date} today Ngày hiện tại.
+ * @returns {"present"|"absent"|"excused"|"upcoming"|"unmarked"}
+ */
+export const getDisplayStatus = (session, today) =>
+  session.status === "upcoming" && session.date < toIso(today) ? "unmarked" : session.status;
+
+/**
+ * Các buổi đã qua ngày (trước hôm nay) mà vẫn chưa điểm danh, sắp theo thời gian.
+ * @param {Array} sessions Tất cả buổi học.
+ * @param {string|Date} today Ngày hiện tại.
+ * @returns {Array} Mảng rỗng nếu đã điểm danh đủ.
+ */
+export const getUnmarkedSessions = (sessions, today) =>
+  sortByTime(sessions.filter((s) => getDisplayStatus(s, today) === "unmarked"));
+
+// ---------- Kiểm tra dữ liệu nhập từ file JSON ----------
+
+const VALID_STATUS = ["present", "absent", "excused", "upcoming"];
+const PROFILE_KEYS = ["studentId", "fullName", "email", "phone", "className"];
+const isInt = (n, min, max) => Number.isInteger(n) && n >= min && n <= max;
+
+/**
+ * Kiểm tra một buổi học có đúng Data Contract không.
+ * @returns {string} Thông báo lỗi, "" nếu hợp lệ.
+ */
+const sessionError = (s, courseIds) => {
+  if (typeof s !== "object" || s === null) return "không phải đối tượng";
+  if (typeof s.sessionId !== "string" || s.sessionId === "") return "thiếu sessionId";
+  if (!courseIds.includes(s.courseId)) return `môn "${s.courseId}" không có trong danh sách môn`;
+  if (!isValidIsoDate(s.date)) return `ngày "${s.date}" không hợp lệ (cần YYYY-MM-DD)`;
+  if (!isInt(s.shift, 1, 4)) return "ca học phải từ 1 đến 4";
+  if (!isInt(s.periodStart, 1, 15) || !isInt(s.periodEnd, s.periodStart, 15)) return "tiết học không hợp lệ";
+  if (typeof s.room !== "string") return "thiếu phòng học";
+  if (!VALID_STATUS.includes(s.status)) return `trạng thái "${s.status}" không hợp lệ`;
+  return "";
+};
+
+/**
+ * Kiểm tra file sao lưu (JSON đã parse) trước khi ghi đè dữ liệu.
+ * Cấu trúc: { app: "lhu-attendance", version: 1, sessions: [...], profile?: {...}, settings?: {...} }
+ * @param {*} data Kết quả JSON.parse.
+ * @param {Array<{courseId: string}>} courses Danh sách môn hợp lệ.
+ * @returns {{ok: boolean, errors: string[], value: (Object|null)}}
+ *   errors tối đa 5 dòng; value chỉ có khi ok = true.
+ */
+export const validateBackup = (data, courses) => {
+  const fail = (...errors) => ({ ok: false, errors: errors.slice(0, 5), value: null });
+  if (typeof data !== "object" || data === null || Array.isArray(data)) return fail("File không phải bản sao lưu của ứng dụng.");
+  if (data.app !== "lhu-attendance") return fail("File không phải bản sao lưu của LHU Attendance Tracker.");
+  if (!Array.isArray(data.sessions) || data.sessions.length === 0) return fail("File không có danh sách buổi học.");
+
+  const courseIds = courses.map((c) => c.courseId);
+  const sessionErrors = data.sessions
+    .map((s, i) => ({ i, msg: sessionError(s, courseIds) }))
+    .filter((r) => r.msg)
+    .map((r) => `Buổi thứ ${r.i + 1}: ${r.msg}.`);
+
+  const ids = data.sessions.map((s) => s?.sessionId);
+  const duplicates = ids.filter((id, i) => ids.indexOf(id) !== i);
+  const dupErrors = duplicates.length ? [`Trùng mã buổi học: ${[...new Set(duplicates)].slice(0, 3).join(", ")}.`] : [];
+
+  const profile = data.profile;
+  const profileErrors = profile !== undefined &&
+    (typeof profile !== "object" || profile === null || !PROFILE_KEYS.every((k) => typeof profile[k] === "string"))
+    ? ["Hồ sơ sinh viên thiếu thông tin."] : [];
+
+  const st = data.settings;
+  const settingsErrors = st !== undefined &&
+    (typeof st !== "object" || st === null ||
+     !(st.absenceLimit > 0 && st.absenceLimit <= 1) ||
+     !(st.warningAt > 0 && st.warningAt <= st.absenceLimit) ||
+     typeof st.notifyEnabled !== "boolean")
+    ? ["Cài đặt không hợp lệ (giới hạn nghỉ phải trong 0–100% và lớn hơn mức cảnh báo)."] : [];
+
+  const errors = [...sessionErrors, ...dupErrors, ...profileErrors, ...settingsErrors];
+  if (errors.length) return fail(...errors);
+  return { ok: true, errors: [], value: { sessions: data.sessions, profile, settings: st } };
+};
+
+/**
+ * Tạo bản sao lưu để xuất ra file JSON.
+ * @param {Array} sessions Buổi học. @param {Object} profile Hồ sơ. @param {Object} settings Cài đặt.
+ * @param {string} exportedAt Thời điểm xuất (ISO string), truyền vào để hàm vẫn thuần.
+ * @returns {Object} Đối tượng sẵn sàng JSON.stringify; validateBackup() đọc lại được.
+ */
+export const createBackup = (sessions, profile, settings, exportedAt) => ({
+  app: "lhu-attendance",
+  version: 1,
+  exportedAt,
+  profile,
+  settings,
+  sessions,
+});
