@@ -170,6 +170,38 @@
 .pf-save:disabled { cursor: not-allowed; opacity: 0.5; }   /* chưa hợp lệ -> mờ, không bấm được */
 .pf-status { margin: 0; color: var(--ui-safe); font-weight: 600; }
 
+/* Cảnh báo "chưa lưu": chỉ hiện khi form khác dữ liệu đã lưu (JS bật/tắt thuộc tính hidden) */
+.pf-unsaved {
+  display: flex;
+  flex: 1 1 260px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-2);
+  margin: 0;
+  padding: var(--ui-space-2) var(--ui-space-3);
+  font-weight: 600;
+  color: var(--ui-warning);
+  background: var(--ui-warning-bg);
+  border-left: 4px solid var(--ui-warning);
+  border-radius: var(--ui-radius-sm);
+}
+.pf-unsaved[hidden] { display: none; }
+.pf-unsaved__text { flex: 1 1 auto; }
+.pf-unsaved .ui-btn { padding: var(--ui-space-1) var(--ui-space-3); font-size: 0.9rem; }
+
+/* Khi có thay đổi chưa lưu: thanh nút Lưu "nổi" dính ở đáy màn hình (ngay trên footer)
+   để người dùng cuộn tới đâu cũng thấy cảnh báo và nút Lưu. */
+.pf-actions--dirty {
+  position: sticky;
+  bottom: calc(var(--ui-bottom-offset) + var(--ui-space-2));
+  z-index: 700;
+  padding: var(--ui-space-3);
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-warning);
+  border-radius: var(--ui-radius);
+  box-shadow: var(--ui-shadow);
+}
+
 .pf-danger-zone {
   margin-top: var(--ui-space-5);
   padding: var(--ui-space-4);
